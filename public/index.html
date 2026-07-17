@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediaVision — Pipeline IA d'Enrichissement Produits</title>
+  <meta name="description" content="Pipeline automatisé d'enrichissement de catalogue produits pour MediaVision Tunisie. Analyse, enrichit et exporte vers PrestaShop." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+  <!-- ── Sidebar Navigation ──────────────────────────────────────────────── -->
+  <aside id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="32" height="32" rx="8" fill="url(#g1)"/>
+          <path d="M8 22L14 10L19 18L22 14L26 22H8Z" fill="white" opacity="0.9"/>
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="32" y2="32">
+              <stop offset="0%" stop-color="#6366f1"/>
+              <stop offset="100%" stop-color="#06b6d4"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">MediaVision</span>
+        <span class="brand-sub">Pipeline IA</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-tab="input" id="nav-input">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12l7-7 7 7"/>
+        </svg>
+        <span>1. Import Données</span>
+      </button>
+      <button class="nav-item" data-tab="dashboard" id="nav-dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>2. Validation IA</span>
+        <span class="badge" id="badge-dashboard">0</span>
+      </button>
+      <button class="nav-item" data-tab="tables" id="nav-tables">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M3 12h18M3 18h18"/><path d="M8 3v18M16 3v18"/>
+        </svg>
+        <span>3. Catégories PS</span>
+      </button>
+      <button class="nav-item" data-tab="settings" id="nav-settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <span>4. Paramètres API</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-dot" id="api-status-dot"></div>
+      <span class="status-label" id="api-status-label">Non configuré</span>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ────────────────────────────────────────────────────── -->
+  <main id="main">
+
+    <!-- ── TAB: Raw Input ────────────────────────────────────────────────── -->
+    <section class="tab-panel active" id="tab-input">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">Entrée Brute Fournisseur</h1>
+          <p class="panel-sub">Collez votre liste de prix et références fournisseurs. Le système analyse, enrichit et structure chaque produit automatiquement.</p>
+        </div>
+      </div>
+
+      <div class="input-grid">
+        <!-- Raw text input -->
+        <div class="card input-card">
+          <div class="card-header">
+            <span class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Texte brut fournisseur
+            </span>
+            <button class="btn btn-ghost btn-sm" id="btn-clear-input">Effacer</button>
+          </div>
+          <textarea
+            id="raw-input"
+            placeholder="Collez ici votre liste de prix fournisseur...
+
+Exemples de formats supportés :
+DS-D5B65RB/EL          4459.000 DT
+V11HA78080             8499 TND
+ST6000VX009 - 899,000 TND
+Prix: GIGABYTE G6 KF-24g = 4199.00 TND"
+          ></textarea>
+          <div class="input-actions">
+            <button class="btn btn-secondary" id="btn-parse">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h6"/><path d="M12 12l9 3-4 2-2 4-3-9z"/></svg>
+              Analyser
+            </button>
+            <button class="btn btn-primary" id="btn-enrich" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+              Enrichir tout
+              <span id="enrich-count"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Parsed preview -->
+        <div class="card preview-card" id="preview-card" style="display:none">
+          <div class="card-header">
+            <span class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              Références détectées
+            </span>
+            <span class="chip chip-primary" id="parsed-count">0</span>
+          </div>
+          <div class="parsed-list" id="parsed-list"></div>
+        </div>
+      </div>
+
+      <!-- Progress panel (shown during enrichment) -->
+      <div class="card progress-card" id="progress-card" style="display:none">
+        <div class="card-header">
+          <span class="card-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Enrichissement en cours
+          </span>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span class="chip" id="progress-summary">0 / 0</span>
+            <button class="btn btn-sm btn-danger" id="btn-cancel-job" style="padding: 2px 8px; font-size: 12px; display: none;">Annuler</button>
+          </div>
+        </div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="progress-bar" style="width:0%"></div>
+        </div>
+        <div class="progress-list" id="progress-list"></div>
+        <div class="progress-done" id="progress-done" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Enrichissement terminé !
+          <button class="btn btn-primary btn-sm" id="btn-goto-dashboard">Voir le tableau de bord →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TAB: Dashboard ─────────────────────────────────────────────────── -->
+    <section class="tab-panel" id="tab-dashboard">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">Tableau de Bord Staging</h1>
+          <p class="panel-sub">Révisez, modifiez et approuvez les produits enrichis avant l'export PrestaShop.</p>
+        </div>
+        <button class="btn btn-primary" id="btn-export-csv">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exporter CSV PrestaShop
+        </button>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><span class="stat-num" id="stat-total">0</span><span class="stat-label">Total</span></div>
+        <div class="stat-card stat-enriched"><span class="stat-num" id="stat-enriched">0</span><span class="stat-label">Enrichis</span></div>
+        <div class="stat-card stat-approved"><span class="stat-num" id="stat-approved">0</span><span class="stat-label">Approuvés</span></div>
+        <div class="stat-card stat-error"><span class="stat-num" id="stat-errors">0</span><span class="stat-label">Erreurs</span></div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="search-products" placeholder="Rechercher référence ou titre..." />
+        </div>
+        <div class="filter-chips">
+          <button class="chip chip-filter active" data-filter="all">Tous</button>
+          <button class="chip chip-filter" data-filter="enriched">Enrichis</button>
+          <button class="chip chip-filter" data-filter="approved">Approuvés</button>
+          <button class="chip chip-filter" data-filter="rejected">Rejetés</button>
+          <button class="chip chip-filter" data-filter="error">Erreurs</button>
+          <button class="chip chip-filter" data-filter="pending">En attente</button>
+        </div>
+        <div class="bulk-actions" id="bulk-actions" style="display:none">
+          <button class="btn btn-sm btn-secondary" id="btn-bulk-retry">Réessayer sélection</button>
+          <button class="btn btn-sm btn-success" id="btn-bulk-approve">Approuver sélection</button>
+          <button class="btn btn-sm btn-danger"  id="btn-bulk-delete">Supprimer</button>
+        </div>
+        <button class="btn btn-sm btn-ghost" id="btn-refresh-dashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        </button>
+      </div>
+
+      <!-- Select all -->
+      <div class="select-bar" id="select-bar" style="display:none">
+        <label class="checkbox-label">
+          <input type="checkbox" id="select-all-cb" />
+          <span>Tout sélectionner</span>
+        </label>
+        <span class="selected-count" id="selected-count">0 sélectionné(s)</span>
+      </div>
+
+      <!-- Product list (Data Grid) -->
+      <div class="data-grid-header" id="data-grid-header">
+        <div class="dg-col-cb"></div>
+        <div class="dg-col-img">Image</div>
+        <div class="dg-col-ref">Référence & Marque</div>
+        <div class="dg-col-title">Titre & Specs</div>
+        <div class="dg-col-price">Prix</div>
+        <div class="dg-col-status">Statut & Conf.</div>
+        <div class="dg-col-actions" style="text-align:right">Actions</div>
+      </div>
+      <div class="product-list data-grid-mode" id="product-list">
+        <div class="empty-state" id="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          <p>Aucun produit encore. Lancez un enrichissement depuis l'onglet Entrée Brute.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── TAB: Reference Tables ──────────────────────────────────────────── -->
+    <section class="tab-panel" id="tab-tables">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">Tables de Référence PrestaShop</h1>
+          <p class="panel-sub">Importez les données de vos tables PrestaShop (catégories, taxes, marques). L'IA les utilise pour choisir les bons IDs lors de l'export.</p>
+        </div>
+      </div>
+
+      <div class="tables-grid">
+        <!-- Import form -->
+        <div class="card import-card">
+          <div class="card-header">
+            <span class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Importer une table
+            </span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nom de la table</label>
+            <select id="table-name-select" class="form-select">
+              <option value="categories">Catégories (ps_category)</option>
+              <option value="features">Caractéristiques (ps_feature)</option>
+              <option value="tax_rules">Règles de taxe (ps_tax_rule)</option>
+              <option value="manufacturers">Marques (ps_manufacturer)</option>
+              <option value="suppliers">Fournisseurs (ps_supplier)</option>
+              <option value="products_existing">Produits existants (export mediavision)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Données CSV (collez ici)</label>
+            <textarea id="table-csv-input" class="table-csv-input" placeholder='Collez votre export CSV ici...
+
+Exemple catégories:
+"ID";"Nom";"Parent"
+3;"Pc Portable";2
+4;"Écran";2
+...'></textarea>
+          </div>
+          <div class="import-actions">
+            <button class="btn btn-primary" id="btn-import-table">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Importer
+            </button>
+            <span class="import-feedback" id="import-feedback"></span>
+          </div>
+        </div>
+
+        <!-- Imported tables list -->
+        <div class="card tables-list-card">
+          <div class="card-header">
+            <span class="card-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+              Tables importées
+            </span>
+            <button class="btn btn-ghost btn-sm" id="btn-refresh-tables">Actualiser</button>
+          </div>
+          <div id="tables-list">
+            <div class="empty-state">Aucune table importée.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview panel -->
+      <div class="card table-preview-card" id="table-preview-card" style="display:none">
+        <div class="card-header">
+          <span class="card-label" id="table-preview-label">Aperçu</span>
+          <button class="btn btn-ghost btn-sm" id="btn-close-preview">Fermer ✕</button>
+        </div>
+        <div class="table-preview-wrap" id="table-preview-wrap"></div>
+      </div>
+    </section>
+
+    <!-- ── TAB: Settings ──────────────────────────────────────────────────── -->
+    <section class="tab-panel" id="tab-settings">
+      <div class="panel-header">
+        <div>
+          <h1 class="panel-title">Paramètres & Clés API</h1>
+          <p class="panel-sub">Configurez vos fournisseurs IA et de recherche. Les clés sont stockées localement dans la base de données SQLite — elles ne quittent jamais votre machine.</p>
+        </div>
+      </div>
+
+      <div class="settings-grid">
+
+        <!-- LLM Provider -->
+        <div class="card settings-card">
+          <div class="settings-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+            Moteur IA (LLM)
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fournisseur</label>
+            <select id="llm-provider" class="form-select">
+              <option value="openai">OpenAI (GPT-4o / GPT-4o-mini)</option>
+              <option value="gemini">Google Gemini (gemini-1.5-flash)</option>
+              <option value="openrouter">OpenRouter (Modèles Gratuits)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+              <span>Modèle</span>
+              <button class="btn btn-ghost btn-sm" id="btn-fetch-openrouter" style="display:none; font-size:0.7rem; padding:0.2rem 0.5rem;">Charger la liste API</button>
+            </label>
+            <input type="text" id="llm-model" class="form-input" placeholder="gpt-4o-mini" />
+            <select id="llm-model-select" class="form-select" style="display:none;"></select>
+          </div>
+          
+          <div class="form-group" id="group-openai-key">
+            <label class="form-label">Clé API OpenAI</label>
+            <div class="input-eye-wrap">
+              <input type="password" id="openai-key" class="form-input" placeholder="sk-..." />
+              <button class="eye-btn" data-target="openai-key" tabindex="-1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="form-group" id="group-gemini-key" style="display:none;">
+            <label class="form-label">Clé API Gemini</label>
+            <div class="input-eye-wrap">
+              <input type="password" id="gemini-key" class="form-input" placeholder="AIza..." />
+              <button class="eye-btn" data-target="gemini-key" tabindex="-1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="form-group" id="group-vision-model" style="margin-top: 10px;">
+            <label class="form-label">Modèle Vision (Pour Auto-Curate Photos)</label>
+            <input type="text" id="vision-model" class="form-input" placeholder="google/gemini-2.0-flash-exp:free" />
+            <select id="vision-model-select" class="form-select" style="display:none;"></select>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Doit être un modèle supportant la vision (ex: gpt-4o, gemini-flash).</div>
+          </div>
+          
+          <div class="form-group" id="group-openrouter-key" style="display:none;">
+            <label class="form-label">Clé API OpenRouter</label>
+            <div class="input-eye-wrap">
+              <input type="password" id="openrouter-key" class="form-input" placeholder="sk-or-v1-..." />
+              <button class="eye-btn" data-target="openrouter-key" tabindex="-1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Search Provider -->
+        <div class="card settings-card">
+          <div class="settings-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            Moteur de Recherche
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fournisseur</label>
+            <select id="search-provider" class="form-select">
+              <option value="serper">Serper.dev (Recommandé)</option>
+              <option value="serpapi">SerpApi</option>
+              <option value="tavily">Tavily AI</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Clé API</label>
+            <div class="input-eye-wrap">
+              <input type="password" id="search-key" class="form-input" placeholder="Votre clé API..." />
+              <button class="eye-btn" data-target="search-key" tabindex="-1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 10px;">
+            <label class="form-label">Sites web d'aide (Optionnel)</label>
+            <textarea id="helper-websites" class="form-input" style="min-height: 60px" placeholder="ex: mytek.tn, tunisianet.com.tn, spacenet.tn"></textarea>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Entrez une liste de domaines séparés par des virgules. L'IA priorisera les recherches sur ces sites pour trouver de meilleures images et caractéristiques, tout en recherchant également sur le reste du web.</div>
+          </div>
+        </div>
+
+        <!-- Jina Reader -->
+        <div class="card settings-card">
+          <div class="settings-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+            Jina AI Reader
+            <span class="chip chip-muted">Optionnel</span>
+          </div>
+          <p class="settings-hint">Jina Reader convertit les pages web en markdown propre, contournant les protections anti-scraping. Fonctionne sans clé (limité) ou avec une clé gratuite.</p>
+          <div class="form-group">
+            <label class="form-label">Clé API Jina (optionnel)</label>
+            <div class="input-eye-wrap">
+              <input type="password" id="jina-key" class="form-input" placeholder="jina_... (laisser vide pour utilisation libre)" />
+              <button class="eye-btn" data-target="jina-key" tabindex="-1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save button -->
+        <div class="settings-save-row">
+          <button class="btn btn-primary btn-lg" id="btn-save-settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Enregistrer les paramètres
+          </button>
+          <span class="save-feedback" id="save-feedback"></span>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Product Edit Drawer ────────────────────────────────────────────────── -->
+  <div class="drawer-overlay" id="drawer-overlay"></div>
+  <aside class="drawer" id="product-drawer">
+    <div class="drawer-header">
+      <h2 class="drawer-title" id="drawer-title">Modifier le produit</h2>
+      <button class="drawer-close" id="drawer-close">✕</button>
+    </div>
+    <div class="drawer-body" id="drawer-body">
+      <!-- Filled dynamically by app.js -->
+    </div>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" id="drawer-save">Enregistrer</button>
+      <button class="btn btn-primary"   id="drawer-approve">✓ Approuver</button>
+    </div>
+  </aside>
+
+  <!-- ── Export Modal ────────────────────────────────────────────────────────── -->
+  <div class="drawer-overlay" id="export-overlay"></div>
+  <div class="modal" id="export-modal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 24px; border-radius: 12px; z-index: 10001; max-width: 500px; width: 90%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+    <h2 style="margin-top:0; color:var(--text-main);">Exportation Prête</h2>
+    <p style="color:var(--text-muted); font-size:14px; margin-bottom: 20px;">
+      Avant d'importer les produits, veuillez importer les catégories et caractéristiques manquantes dans le bon ordre :
+    </p>
+    <div style="display:flex; flex-direction:column; gap:12px;" id="export-buttons-container">
+      <!-- Buttons injected here by JS -->
+    </div>
+    <div style="margin-top: 24px; text-align: right;">
+      <button class="btn btn-ghost" id="export-close">Fermer</button>
+    </div>
+  </div>
+
+  <!-- ── Toast ──────────────────────────────────────────────────────────────── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

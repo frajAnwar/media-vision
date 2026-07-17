@@ -1,0 +1,20 @@
+# Node dependencies
+node_modules/
+
+# Local databases (contains SQLite data & dynamic settings/keys)
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Local environment configuration
+.env
+
+# LLM temporary outputs / logs
+last_llm_output.txt
+last_llm_ingest_output.txt
+*.log
+
+# Operating System files
+.DS_Store
+Thumbs.db
