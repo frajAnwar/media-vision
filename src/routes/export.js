@@ -69,7 +69,7 @@ router.get('/package', (req, res) => {
       }
     }
     
-    const taxId = p.resolved_tax_rule_id ?? 0;
+    const taxId = '0'; // 0 par défaut pour les taxes (pas de taxe)
     const catId = p.resolved_category_id ?? '';
     const catName = p.suggested_category || '';
     let catCol = catId ? `${catId}` : catName;
@@ -207,7 +207,7 @@ router.get('/csv', (req, res) => {
         allImgsStr = String(p.selected_image);
       }
     }
-    const taxId   = p.resolved_tax_rule_id ?? 0;
+    const taxId   = '0'; // 0 par défaut pour les taxes
     const catId   = p.resolved_category_id  ?? '';
     const catName = p.suggested_category || '';
     let catCol  = catId ? `${catId}` : catName; // fallback
@@ -260,7 +260,7 @@ router.get('/csv', (req, res) => {
       p.product_title || p.reference, // 3. Nom*
       catCol,       // 4. Catégories (x,y,z...)
       p.raw_price != null ? p.raw_price.toFixed(6) : '', // 5. Prix HT
-      p.resolved_tax_rule_id ? p.resolved_tax_rule_id : '', // 6. ID règle de taxes
+      taxId, // 6. ID règle de taxes
       '',           // 7. Prix d'achat
       '0',          // 8. En soldes (0/1)
       '',           // 9. Montant de la remise

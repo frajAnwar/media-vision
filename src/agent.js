@@ -26,9 +26,8 @@ SCHÉMA JSON OBLIGATOIRE :
     "meta_title": "Titre SEO très court (max 60 caractères). RÈGLES : Uniquement lettres, chiffres et tirets. INTERDIT : emojis, guillemets, symboles (< > = { } ; \" ').",
       "meta_keywords": "5 mots-clés simples séparés par des virgules. INTERDIT : emojis, guillemets, symboles spéciaux.",
         "meta_description": "TRÈS IMPORTANT : Doit être une phrase courte (maximum 150 caractères). RÈGLES : Uniquement lettres, chiffres, virgules et points. INTERDIT : sauts de ligne, emojis, guillemets, symboles HTML ou spéciaux (< > = { } ; \" ').",
-          "suggested_categories": ["Catégorie Principale Générale (ex: Pc Portable, Smartphone, Imprimante)", "Sous-catégorie spécifique (ex: Pc Portable Gamer)"],
-            "resolved_category_ids": ["ID numérique 1", "ID numérique 2 (optionnel)"],
-              "resolved_tax_rule_id": "L'ID numérique de la règle fiscale pour la TVA tunisienne standard (19%). Retourne null si inconnu.",
+              "suggested_categories": ["Catégorie Principale Générale (ex: Pc Portable, Smartphone, Imprimante)", "Sous-catégorie spécifique (ex: Pc Portable Gamer)"],
+              "resolved_category_ids": ["ID numérique 1", "ID numérique 2 (optionnel)"],
                 "matched_features": [
                   {
                     "name": "Nom de la caractéristique EXACTEMENT tel qu'il apparait dans la table de référence 'features' (ex: Résolution, RAM)",
