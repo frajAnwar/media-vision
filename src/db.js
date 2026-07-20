@@ -94,25 +94,28 @@ function initDB() {
     )
   `);
 
-  // ── Pre-seed PrestaShop Categories ────────────────────────────────────────
+  // ── Pre-seed PrestaShop Categories & References ─────────────────────────
   try {
-    const catsCount = db.prepare("SELECT COUNT(*) as count FROM reference_tables WHERE table_name = 'categories'").get().count;
-    if (catsCount === 0) {
-      const catsPath = path.join(__dirname, 'data', 'categories.json');
-      if (fs.existsSync(catsPath)) {
-        const catsData = JSON.parse(fs.readFileSync(catsPath, 'utf8'));
-        const insert = db.prepare("INSERT INTO reference_tables (table_name, row_data) VALUES ('categories', ?)");
-        const run = db.transaction(() => {
-          for (const row of catsData) {
-            insert.run(JSON.stringify(row));
-          }
-        });
-        run();
-        console.log(`✅ Pre-seeded ${catsData.length} PrestaShop categories.`);
+    const referenceTables = ['categories', 'suppliers', 'manufacturers', 'features'];
+    for (const tbl of referenceTables) {
+      const rowCount = db.prepare('SELECT COUNT(*) as count FROM reference_tables WHERE table_name = ?').get(tbl).count;
+      if (rowCount === 0) {
+        const jsonPath = path.join(__dirname, 'data', `${tbl}.json`);
+        if (fs.existsSync(jsonPath)) {
+          const tableData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+          const insert = db.prepare('INSERT INTO reference_tables (table_name, row_data) VALUES (?, ?)');
+          const run = db.transaction(() => {
+            for (const row of tableData) {
+              insert.run(tbl, JSON.stringify(row));
+            }
+          });
+          run();
+          console.log(`✅ Pre-seeded ${tableData.length} rows for ${tbl}.`);
+        }
       }
     }
   } catch(e) {
-    console.error('Failed to pre-seed categories:', e);
+    console.error('Failed to pre-seed reference tables:', e);
   }
 
   // ── Pipeline jobs ─────────────────────────────────────────────────────────
