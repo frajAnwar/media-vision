@@ -323,7 +323,7 @@ function updateProgressRow(reference, status, title, confidence, error, id, from
       $('progress-summary').textContent = `${_progressDone} / ${_progressTotal}`;
     }
   } else {
-    const dashCard = document.querySelector(`.product-card[data-id="${id}"]`);
+    const dashCard = document.querySelector(`.product-row[data-id="${id}"]`);
     if (dashCard) {
       if (status === 'enriched' || status === 'error') {
         // Will be refreshed in 'complete' event, but can add a temporary class
@@ -419,7 +419,7 @@ function renderProductList() {
       const pId = cb.dataset.id;
       if (cb.checked) state.selectedIds.add(pId);
       else state.selectedIds.delete(pId);
-      cb.closest('.product-card').classList.toggle('selected', cb.checked);
+      cb.closest('.product-row').classList.toggle('selected', cb.checked);
       updateSelectBar();
     });
   });
@@ -552,11 +552,22 @@ function productCardHTML(p) {
     selectedImgs = p.selected_image ? [p.selected_image] : [];
   }
 
-    let galleryHTML = '<div class="pr-image-thumb"><span class="no-img">📦</span></div>';
-  if (selectedImgs.length > 0) {
-    galleryHTML = `<img src="${esc(selectedImgs[0])}" class="pr-image-thumb" loading="lazy" onerror="this.style.display='none'" />`;
-  } else if (p.high_res_images && p.high_res_images.length > 0) {
-    galleryHTML = `<img src="${esc(p.high_res_images[0])}" class="pr-image-thumb" loading="lazy" onerror="this.style.display='none'" />`;
+  let galleryHTML = '<div class="pr-image-thumb"><span class="no-img">📦</span></div>';
+  const imagesToRender = p.high_res_images && p.high_res_images.length > 0 ? p.high_res_images : selectedImgs;
+  
+  if (imagesToRender.length > 0) {
+    galleryHTML = `<div class="dash-gallery" onclick="event.stopPropagation()">` + 
+      imagesToRender.map(url => {
+        const selIdx = selectedImgs.indexOf(url);
+        const isSel = selIdx !== -1;
+        return `
+          <div class="dg-item ${isSel ? 'selected' : ''}" data-url="${esc(url)}" data-pid="${p.id}">
+            <img src="${esc(url)}" loading="lazy" onerror="this.parentElement.style.display='none'" />
+            ${isSel ? `<span class="dg-num">${selIdx + 1}</span>` : ''}
+          </div>
+        `;
+      }).join('') +
+    `</div>`;
   }
 
   const isLowConf = conf < 0.75 && p.status === 'enriched';
@@ -594,6 +605,9 @@ function productCardHTML(p) {
       </div>
 
       <div class="pr-actions" style="display:flex; gap:4px; justify-content:flex-end;">
+        <button class="btn-icon btn-secondary btn-retry-product" data-id="${p.id}" title="Réessayer (Relancer l'IA)" onclick="event.stopPropagation()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>
+        </button>
         ${p.status !== 'error' && p.status !== 'approved' ? `
         <button class="btn-icon btn-success btn-approve-product" data-id="${p.id}" title="Approuver" onclick="event.stopPropagation()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
@@ -865,11 +879,12 @@ function renderDrawerBody(p) {
           </div>
           <div class="image-grid" id="drawer-img-grid">
             ${images.map((url, i) => {
-              const isSel = selectedImages.includes(url);
+              const selIdx = selectedImages.indexOf(url);
+              const isSel = selIdx !== -1;
               return `
               <div class="img-thumb${isSel ? ' active' : ''}" data-url="${esc(url)}" title="${esc(url)}">
                 <img src="${esc(url)}" loading="lazy" onerror="this.src=''" />
-                ${isSel ? '<div class="check">✓</div>' : ''}
+                ${isSel ? `<div class="check">${selIdx + 1}</div>` : ''}
               </div>
             `}).join('')}
           </div>
@@ -902,17 +917,25 @@ function renderDrawerBody(p) {
         const isActive = thumb.classList.contains('active');
         
         if (isActive) {
-          thumb.classList.remove('active');
-          const c = thumb.querySelector('.check');
-          if (c) c.remove();
           state.editingProduct.selected_images_array = state.editingProduct.selected_images_array.filter(u => u !== url);
         } else {
-          thumb.classList.add('active');
-          thumb.insertAdjacentHTML('beforeend', '<div class="check">✓</div>');
           if (!state.editingProduct.selected_images_array.includes(url)) {
             state.editingProduct.selected_images_array.push(url);
           }
         }
+        
+        // Refresh visuals
+        imgGrid.querySelectorAll('.img-thumb').forEach(t => {
+          const u = t.dataset.url;
+          t.classList.remove('active');
+          const c = t.querySelector('.check'); if(c) c.remove();
+          
+          const selIdx = state.editingProduct.selected_images_array.indexOf(u);
+          if (selIdx !== -1) {
+            t.classList.add('active');
+            t.insertAdjacentHTML('beforeend', `<div class="check">${selIdx + 1}</div>`);
+          }
+        });
       });
     });
 
@@ -935,9 +958,10 @@ function renderDrawerBody(p) {
             t.classList.remove('active');
             const c = t.querySelector('.check'); if(c) c.remove();
             
-            if (data.selected_images.includes(u)) {
+            const selIdx = data.selected_images.indexOf(u);
+            if (selIdx !== -1) {
               t.classList.add('active');
-              t.insertAdjacentHTML('beforeend', '<div class="check">✓</div>');
+              t.insertAdjacentHTML('beforeend', `<div class="check">${selIdx + 1}</div>`);
             }
           });
         } catch(e) {
@@ -962,7 +986,7 @@ async function saveDrawer() {
     suggested_category:$('d-cat').value.trim(),
     seo_excerpt:       $('d-excerpt').value.trim(),
     html_description:  $('d-html').value.trim(),
-    selected_image:    p.selected_image || null,
+    selected_image:    p.selected_images_array ? JSON.stringify(p.selected_images_array) : (p.selected_image || null),
   };
 
   try {
@@ -1237,8 +1261,28 @@ function _updateApiStatus(cfg) {
   }
 }
 
-// ── Toast System ───────────────────────────────────────────────────────────
+// ── Toast System & Error Handling ──────────────────────────────────────────
+function humanizeError(errMsg) {
+  if (!errMsg) return 'An unknown error occurred.';
+  const msg = String(errMsg).toLowerCase();
+  if (msg.includes('api key') || msg.includes('unauthorized') || msg.includes('401')) {
+    return 'Oops! It looks like your API key is missing or invalid. Please check the Settings tab! 🔑';
+  }
+  if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed to fetch')) {
+    return 'Uh oh, we lost connection! Please check your internet and try again. 🌐';
+  }
+  if (msg.includes('rate limit') || msg.includes('429') || msg.includes('too many requests')) {
+    return 'Whoa, slow down! We hit an API limit. Take a quick break and try again in a moment. ⏳';
+  }
+  if (msg.includes('timeout')) {
+    return 'The request took too long. The server might be busy, please try again! 🐌';
+  }
+  return `Something went wrong: ${errMsg} 🔧`;
+}
+
 function toast(msg, type = 'info') {
+  if (type === 'err') msg = humanizeError(msg);
+
   const el  = document.createElement('div');
   el.className = `toast toast-${type}`;
   
@@ -1298,10 +1342,29 @@ function init() {
   initSettingsTab();
   initDrawer();
 
-  // Load initial settings for status indicator
+  // Load initial settings for status indicator and setup wizard
   api.settings.get()
-    .then(_updateApiStatus)
+    .then(cfg => {
+      _updateApiStatus(cfg);
+      const hasLLM    = cfg.openai_key || cfg.gemini_key || cfg.openrouter_key;
+      const hasSearch = cfg.serpapi_key || cfg.serper_key || cfg.tavily_key;
+      
+      // Show setup wizard if keys are missing
+      if (!hasLLM || !hasSearch) {
+        $('setup-overlay').style.display = 'block';
+        $('setup-modal').style.display = 'block';
+      }
+    })
     .catch(() => {});
+
+  // Setup Wizard Button
+  if ($('btn-goto-settings-helper')) {
+    $('btn-goto-settings-helper').addEventListener('click', () => {
+      $('setup-overlay').style.display = 'none';
+      $('setup-modal').style.display = 'none';
+      switchTab('settings');
+    });
+  }
 
   // Auto-import the mediavision products CSV if it was detected
   // (User can also do this manually from the Tables tab)

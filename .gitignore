@@ -18,3 +18,16 @@ last_llm_ingest_output.txt
 # Operating System files
 .DS_Store
 Thumbs.db
+
+# Build outputs
+dist/
+dist-win/
+*.exe
+
+# Prevent leaking scripts and custom MD files
+scratch/
+tests/
+*.csv
+*.md
+!README.md
+!LICENSE

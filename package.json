@@ -1,19 +1,58 @@
 {
-  "name": "mediavision-enrichment-pipeline",
+  "name": "visionary-ai",
   "version": "1.0.0",
-  "description": "AI Product Enrichment Pipeline for MediaVision Tunisia",
-  "main": "server.js",
+  "description": "Visionary AI - Developed by Med Anwer Fraj",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start:web": "node server.js",
+    "start:app": "electron .",
+    "dev": "node --watch server.js",
+    "build": "electron-builder build --win"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "electron-updater": "^6.8.9",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
     "mysql2": "^3.9.4"
+  },
+  "devDependencies": {
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "wait-on": "^7.2.0"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "build": {
+    "appId": "com.visionary.ai",
+    "productName": "Visionary AI",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/favicon.png"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "frajAnwar",
+        "repo": "media-vision"
+      }
+    ],
+    "files": [
+      "src/**/*",
+      "public/**/*",
+      "main.js",
+      "server.js",
+      "package.json",
+      "node_modules/**/*",
+      "data/**/*",
+      ".env"
+    ]
   }
 }

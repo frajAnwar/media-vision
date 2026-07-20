@@ -21,39 +21,41 @@ SCHÉMA JSON OBLIGATOIRE :
 {
   "product_title": "Titre consommateur standard EN FRANÇAIS. Format : Marque + Modèle + Spec clé (ex: 'Imprimante EcoTank Epson L3250 Wifi')",
   "brand": "Nom de la marque EN MAJUSCULES (ex: 'EPSON', 'MSI', 'HIKVISION')",
-  "html_description": "Génère une description HTML magnifique et très riche. Structure recommandée : 1) Un paragraphe d'introduction accrocheur. 2) Une courte liste stylisée des points forts principaux avec un code couleur intelligent et varié via CSS inline (utilise une riche palette de couleurs professionnelles selon la caractéristique : ex: vert pour la batterie/éco, rouge/magenta pour le gaming, orange pour CPU, bleu pour l'écran, etc.). 3) Un superbe tableau HTML détaillé pour la 'Fiche technique' ou 'Spécifications' (utilise <table>, <tr>, <th>, <td> avec un style CSS inline moderne, bordures discrètes, design épuré type e-commerce haut de gamme). N'hésite pas à être très créatif avec les couleurs et la mise en page pour que le rendu visuel soit parfait.",
-  "seo_excerpt": "Ceci correspond au 'Récapitulatif' du produit. Tu DOIS générer une liste à puces HTML (<ul><li>...</li></ul>) contenant les 4/5 spécifications majeures. RÈGLE CRITIQUE ABSOLUE : La longueur totale de ce texte HTML NE DOIT JAMAIS DEPASSER 500 CARACTÈRES. Sois TRÈS CONCIS. Utilise du CSS inline pour colorer intelligemment le texte des valeurs importantes. NE TE LIMITE PAS à 2 couleurs. Utilise une palette riche (Rouge/Magenta pour Gaming/GPU, Vert pour autonomie, Bleu/Cyan pour écran/RAM, Orange pour CPU). Exemple : <ul><li style='margin-bottom:4px;'>Processeur : <strong style='color:#ea580c'>Intel Core i5</strong></li></ul>. Uniquement du HTML, pas de texte avant/après.",
-  "meta_title": "Titre SEO très court. RÈGLE CRITIQUE : N'utilise AUCUN guillemet, AUCUN emoji, AUCUN caractère spécial (<, >, =, {, }). Uniquement du texte simple de 60 caractères maximum.",
-  "meta_keywords": "5 mots-clés séparés par des virgules. RÈGLE CRITIQUE : Uniquement du texte simple, pas de caractères spéciaux.",
-  "meta_description": "Chaîne de 150 caractères max. RÈGLE CRITIQUE ABSOLUE : N'utilise AUCUN guillemet, AUCUN saut de ligne, AUCUN emoji, et AUCUN caractère spécial comme < > = { }. Uniquement des phrases textuelles simples.",
-  "suggested_categories": ["Catégorie Principale Générale (ex: Pc Portable, Smartphone, Imprimante)", "Sous-catégorie spécifique (ex: Pc Portable Gamer)"],
-  "resolved_category_ids": ["ID numérique 1", "ID numérique 2 (optionnel)"],
-  "resolved_tax_rule_id": "L'ID numérique de la règle fiscale pour la TVA tunisienne standard (19%). Retourne null si inconnu.",
-  "matched_features": [
-    {
-      "name": "Nom de la caractéristique EXACTEMENT tel qu'il apparait dans la table de référence 'features' (ex: Résolution, RAM)",
-      "value": "La valeur correspondante extraite (ex: 4K UHD)",
-      "is_custom": 1
-    }
-  ],
-  "extracted_specs": {
-    "Caractéristique 1": "Valeur 1",
-    "Caractéristique 2": "Valeur 2",
-    "(Note)": "Adapte les clés selon le type réel du produit (ex: Ports, Résolution, Vitesse, RAM, etc.)"
-  },
-  "mismatch_warning": "Si le contenu scrappé contredit clairement les 'Données initiales du fournisseur' (par ex. le fournisseur indique 16Go RAM mais la page web indique 8Go), décris la différence ici. Sinon, mets null.",
+  "html_description": "Génère une description HTML structurée. 1) Un paragraphe d'introduction clair. 2) Une liste à puces des points forts principaux. 3) OBLIGATOIREMENT un titre de section au format <h2 style='text-align:left;'><span style='color:#f5a623;'><strong>SPECIFICATIONS</strong></span></h2>. 4) Un tableau HTML OBLIGATOIREMENT formaté avec <table class='table table-striped'> (et <tbody>, <tr>, <td>) pour lister la fiche technique complète. NE PAS inventer de CSS inline complexe pour le tableau, utilise uniquement la classe table table-striped pour qu'il s'intègre parfaitement au thème PrestaShop.",
+  "seo_excerpt": "Ceci correspond au 'Récapitulatif' du produit. Tu DOIS générer une liste à puces HTML (<ul><li>...</li></ul>) contenant les 4/5 spécifications majeures. RÈGLE CRITIQUE ABSOLUE : La longueur totale de ce texte HTML NE DOIT JAMAIS DEPASSER 350 CARACTÈRES. L'IA a tendance à faire trop long, sois extrêmement court et concis. Utilise du CSS inline pour colorer le texte. Exemple : <ul><li style='margin-bottom:4px;'>CPU: <strong style='color:#ea580c'>i5</strong></li></ul>. Uniquement du HTML.",
+    "meta_title": "Titre SEO très court (max 60 caractères). RÈGLES : Uniquement lettres, chiffres et tirets. INTERDIT : emojis, guillemets, symboles (< > = { } ; \" ').",
+      "meta_keywords": "5 mots-clés simples séparés par des virgules. INTERDIT : emojis, guillemets, symboles spéciaux.",
+        "meta_description": "TRÈS IMPORTANT : Doit être une phrase courte (maximum 150 caractères). RÈGLES : Uniquement lettres, chiffres, virgules et points. INTERDIT : sauts de ligne, emojis, guillemets, symboles HTML ou spéciaux (< > = { } ; \" ').",
+          "suggested_categories": ["Catégorie Principale Générale (ex: Pc Portable, Smartphone, Imprimante)", "Sous-catégorie spécifique (ex: Pc Portable Gamer)"],
+            "resolved_category_ids": ["ID numérique 1", "ID numérique 2 (optionnel)"],
+              "resolved_tax_rule_id": "L'ID numérique de la règle fiscale pour la TVA tunisienne standard (19%). Retourne null si inconnu.",
+                "matched_features": [
+                  {
+                    "name": "Nom de la caractéristique EXACTEMENT tel qu'il apparait dans la table de référence 'features' (ex: Résolution, RAM)",
+                    "value": "La valeur correspondante extraite (ex: 4K UHD)",
+                    "is_custom": 1
+                  }
+                ],
+                  "extracted_specs": {
+    "RAM": "16 Go",
+    "Résolution": "4K UHD",
+    "Connectivité": "Filaire"
+},
+"mismatch_warning": "Si le contenu scrappé contredit clairement les 'Données initiales du fournisseur' (par ex. le fournisseur indique 16Go RAM mais la page web indique 8Go), décris la différence ici. Sinon, mets null.",
   "data_confidence_score": "Float entre 0 et 1 (ex: 0.85) estimant la certitude des specs extraites depuis le texte web. Ne mets PAS 0.95 par défaut. Évalue réellement.",
-  "confidence_reason": "Si le data_confidence_score est inférieur à 0.8, explique brievement pourquoi tu as un doute (ex: 'Impossible de trouver le processeur exact sur les sites web'). Sinon, mets null."
+    "confidence_reason": "Si le data_confidence_score est inférieur à 0.8, explique brievement pourquoi tu as un doute (ex: 'Impossible de trouver le processeur exact sur les sites web'). Sinon, mets null."
 }
 
-RÈGLES CRITIQUES :
-1. VÉRACITÉ : Si le contenu scrappé ne contient pas les specs de la référence cible, retourne null pour ces champs. NE JAMAIS inventer des specs.
-2. HTML PROPRE ET BEAU : Toutes les balises doivent être équilibrées. Tu dois impérativement utiliser un joli tableau HTML pour les spécifications détaillées, en plus d'une présentation riche. Sois créatif pour simuler une fiche technique professionnelle et moderne.
-3. LANGUE FRANÇAISE : Tout le texte de sortie (titre, description, extrait) DOIT être en français.
-4. CORRESPONDANCE CATÉGORIE : Cherche en priorité la grande famille / catégorie principale du produit (ex: "Pc Portable", "Imprimante", "Smartphone") dans les tables de référence. Si tu trouves une sous-catégorie pertinente, ajoute-la en deuxième position. Choisis impérativement les noms EXACTS trouvés dans {REFERENCE_TABLES}.
-5. CORRESPONDANCE CARACTÉRISTIQUES : Pour 'matched_features', tu dois impérativement utiliser les noms exacts de la table de référence 'features'. Tu peux extraire jusqu'à 15 caractéristiques si le texte le permet. Le champ 'is_custom' doit toujours être 1.
-6. VÉRITÉ ABSOLUE DES DONNÉES INITIALES : Les 'Données initiales du fournisseur' (INITIAL_DATA) sont LA VÉRITÉ ABSOLUE. Si le contenu scrappé décrit un produit d'une autre marque ou d'un type totalement différent (ex: un chargeur DELL au lieu d'un écran MAXHUB), TU DOIS IGNORER TOTALEMENT LE CONTENU SCRAPPÉ. Ne modifie jamais la marque fournie initialement.
-7. TOLÉRANCE AUX DONNÉES MINIMALES : Si le contenu scrappé est vide ou ignoré, MAIS que les INITIAL_DATA fournissent une marque et un modèle clairs (ex: 'MAXHUB S7520 A'), c'est SUFFISANT. Génère le JSON uniquement à partir des INITIAL_DATA, mets \`mismatch_warning\` à null, \`confidence_reason\` à null, et un \`data_confidence_score\` > 0.85. Ne pénalise pas la fiabilité si les données initiales sont claires.`;
+RÈGLES CRITIQUES:
+1. VÉRACITÉ: Si le contenu scrappé ne contient pas les specs de la référence cible, retourne null pour ces champs.NE JAMAIS inventer des specs.
+2. HTML PROPRE ET BEAU: Toutes les balises doivent être équilibrées.Tu dois impérativement utiliser un joli tableau HTML pour les spécifications détaillées, en plus d'une présentation riche. Sois créatif pour simuler une fiche technique professionnelle et moderne.
+3. LANGUE FRANÇAISE: Tout le texte de sortie(titre, description, extrait) DOIT être en français.
+4. CORRESPONDANCE CATÉGORIE: Cherche en priorité la grande famille / catégorie principale du produit(ex: "Pc Portable", "Imprimante", "Smartphone") dans les tables de référence.Si tu trouves une sous - catégorie pertinente, ajoute - la en deuxième position.Choisis impérativement les noms EXACTS trouvés dans { REFERENCE_TABLES }.
+5. CORRESPONDANCE CARACTÉRISTIQUES: Pour 'matched_features', tu dois impérativement utiliser les noms exacts de la table de référence 'features'.Tu peux extraire jusqu'à 15 caractéristiques si le texte le permet. Le champ 'is_custom' doit toujours être 1.
+6. VÉRITÉ ABSOLUE DES DONNÉES INITIALES: Les 'Données initiales du fournisseur'(INITIAL_DATA) sont LA VÉRITÉ ABSOLUE.Si le contenu scrappé décrit un produit d'une autre marque ou d'un type totalement différent (ex: un chargeur DELL au lieu d'un écran MAXHUB), TU DOIS IGNORER TOTALEMENT LE CONTENU SCRAPPÉ. Ne modifie jamais la marque fournie initialement.
+7. TOLÉRANCE AUX DONNÉES MINIMALES: Si le contenu scrappé est vide ou ignoré, MAIS que les INITIAL_DATA fournissent une marque et un modèle clairs (ex: 'MAXHUB S7520 A'), c'est SUFFISANT. Génère le JSON uniquement à partir des INITIAL_DATA, mets \`mismatch_warning\` à null, \`confidence_reason\` à null, et un \`data_confidence_score\` > 0.85. Ne pénalise pas la fiabilité si les données initiales sont claires.
+8. VALIDATION SEO STRICTE: PrestaShop rejettera l'importation si meta_title, meta_keywords ou meta_description dépassent la taille maximale ou contiennent le moindre emoji ou symbole spécial (< > = { } ; " '). Utilise uniquement du texte basique(lettres et chiffres) pour ces trois champs.
+9. GARANTIE(WARRANTY) : NE JAMAIS extraire ou inclure d'informations de garantie (ex: "1 an de garantie", "Warranty 3 years") à partir du contenu scrappé. La seule information de garantie autorisée est celle figurant explicitement dans les INITIAL_DATA. Si INITIAL_DATA n'en contient pas, ne mentionne AUCUNE garantie.`;
 
 async function enrichProduct(reference, scrapedContent, referenceTables) {
   const db   = getDB();
@@ -92,60 +94,60 @@ async function enrichProduct(reference, scrapedContent, referenceTables) {
     prompt += `\n\nINSTRUCTION MANUELLE DE L'UTILISATEUR (PRIORITÉ MAXIMALE) :\n${referenceTables.initial_data.custom_instruction}\nVeille à appliquer cette instruction pour corriger ou orienter ta réponse.`;
   }
 
-    let rawText;
+let rawText;
 
-    for (let attempt = 0; attempt <= 2; attempt++) {
-      try {
-        if (provider === 'openai') {
-          rawText = await _callOpenAI(prompt, model, apiKey);
-        } else if (provider === 'gemini') {
-          rawText = await _callGemini(prompt, model, apiKey);
-        } else if (provider === 'openrouter') {
-          rawText = await _callOpenRouter(prompt, model, apiKey);
-        } else {
-          throw new Error(`Fournisseur LLM inconnu : ${provider}`);
-        }
-
-        const parsed = _parseJSON(rawText || '');
-        
-        const fs = require('fs');
-        fs.writeFileSync('last_llm_output.txt', rawText || ''); // debug
-        
-        if (parsed && typeof parsed === 'object') {
-          let conf = parseFloat(parsed.data_confidence_score);
-          if (isNaN(conf)) conf = 0.5;
-          parsed.data_confidence_score = conf;
-        }
-
-        return parsed;
-      } catch (e) {
-        if (attempt < 2 && (e.name === 'TimeoutError' || e.message.includes('Unable to parse'))) {
-          console.warn(`[agent] LLM attempt ${attempt+1} failed (${e.message}). Retrying...`);
-          if (e.message.includes('Unable to parse')) {
-            prompt += `\n\nATTENTION : Lors de la tentative précédente, tu as généré une erreur : JSON invalide. Tu DOIS renvoyer UNIQUEMENT un objet JSON valide, sans aucun texte introductif ou conclusif.`;
-          }
-          await new Promise(r => setTimeout(r, 2000));
-          continue;
-        }
-        throw e;
-      }
+for (let attempt = 0; attempt <= 2; attempt++) {
+  try {
+    if (provider === 'openai') {
+      rawText = await _callOpenAI(prompt, model, apiKey);
+    } else if (provider === 'gemini') {
+      rawText = await _callGemini(prompt, model, apiKey);
+    } else if (provider === 'openrouter') {
+      rawText = await _callOpenRouter(prompt, model, apiKey);
+    } else {
+      throw new Error(`Fournisseur LLM inconnu : ${provider}`);
     }
+
+    const parsed = _parseJSON(rawText || '');
+
+    const fs = require('fs');
+    fs.writeFileSync('last_llm_output.txt', rawText || ''); // debug
+
+    if (parsed && typeof parsed === 'object') {
+      let conf = parseFloat(parsed.data_confidence_score);
+      if (isNaN(conf)) conf = 0.5;
+      parsed.data_confidence_score = conf;
+    }
+
+    return parsed;
+  } catch (e) {
+    if (attempt < 2 && (e.name === 'TimeoutError' || e.message.includes('Unable to parse'))) {
+      console.warn(`[agent] LLM attempt ${attempt + 1} failed (${e.message}). Retrying...`);
+      if (e.message.includes('Unable to parse')) {
+        prompt += `\n\nATTENTION : Lors de la tentative précédente, tu as généré une erreur : JSON invalide. Tu DOIS renvoyer UNIQUEMENT un objet JSON valide, sans aucun texte introductif ou conclusif.`;
+      }
+      await new Promise(r => setTimeout(r, 2000));
+      continue;
+    }
+    throw e;
+  }
+}
 }
 
 // ── OpenAI ────────────────────────────────────────────────────────────────────
 async function _callOpenAI(prompt, model, apiKey, retries = 3) {
   for (let i = 0; i <= retries; i++) {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method:  'POST',
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type':  'application/json',
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         model,
         messages: [{ role: 'user', content: prompt }],
-        temperature:  0.15,
-        max_tokens:   8000,
+        temperature: 0.15,
+        max_tokens: 8000,
         response_format: { type: 'json_object' },
       }),
       signal: AbortSignal.timeout(180000),
@@ -175,18 +177,18 @@ async function _callOpenAI(prompt, model, apiKey, retries = 3) {
 async function _callOpenRouter(prompt, model, apiKey, retries = 3) {
   for (let i = 0; i <= retries; i++) {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method:  'POST',
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
-        'Content-Type':  'application/json',
-        'HTTP-Referer':  'http://localhost:3000',
-        'X-Title':       'MediaVision Pipeline'
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'MediaVision Pipeline'
       },
       body: JSON.stringify({
         model,
         messages: [{ role: 'user', content: prompt }],
-        temperature:  0.15,
-        max_tokens:   8000
+        temperature: 0.15,
+        max_tokens: 8000
       }),
       signal: AbortSignal.timeout(180000),
     });
@@ -219,17 +221,17 @@ async function _callOpenRouter(prompt, model, apiKey, retries = 3) {
 async function _callGemini(prompt, model, apiKey, retries = 4) {
   let cleanModel = model.replace(/^models\//, '');
   if (cleanModel === 'gemini-1.5-flash') cleanModel = 'gemini-2.5-flash';
-  
+
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
 
   for (let i = 0; i <= retries; i++) {
     const res = await fetch(url, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents:       [{ parts: [{ text: prompt }] }],
+        contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature:     0.15,
+          temperature: 0.15,
           maxOutputTokens: 8000,
           responseMimeType: 'application/json',
         },
@@ -272,24 +274,24 @@ function _parseJSON(text) {
       const firstBrace = cleaned.indexOf('{');
       const firstBracket = cleaned.indexOf('[');
       const firstChar = (firstBrace !== -1 && firstBracket !== -1) ? Math.min(firstBrace, firstBracket) : Math.max(firstBrace, firstBracket);
-      
+
       const lastBrace = cleaned.lastIndexOf('}');
       const lastBracket = cleaned.lastIndexOf(']');
       const lastChar = Math.max(lastBrace, lastBracket);
-      
+
       if (firstChar !== -1 && lastChar !== -1 && lastChar > firstChar) {
         const extracted = cleaned.substring(firstChar, lastChar + 1);
         return JSON.parse(extracted);
       }
-    } catch (e) {}
-    
+    } catch (e) { }
+
     throw new Error('Unable to parse LLM response to JSON: ' + cleaned.slice(0, 200));
   }
 }
 
 // ── Raw Input Analyzer (Phase 1) ──────────────────────────────────────────────
 async function analyzeRawInput(rawText, provider, apiKey, model) {
-  const prompt = `You are a data extraction assistant. I will provide you with a raw block of text pasted from a supplier's catalog or price list.
+  let prompt = `You are a data extraction assistant. I will provide you with a raw block of text pasted from a supplier's catalog or price list.
 Extract all distinct products found in the text.
 Your output MUST be a strict JSON object containing an "items" array.
 Do NOT use markdown blocks, do not say anything else. Just the JSON object.
@@ -303,18 +305,20 @@ Format:
       "title": "Full name or title of the product",
       "brand": "Brand name if obvious",
       "specs": {
-        "Caractéristique 1": "Valeur 1",
-        "Caractéristique 2": "Valeur 2"
+        "RAM": "16 Go",
+        "Couleur": "Noir",
+        "Connectivité": "Sans fil"
       }
     }
   ]
 }
 
 CRITÈRES STRICTS:
-1. Pour l'objet "specs", tu DOIS extraire EXHAUSTIVEMENT toutes les caractéristiques techniques, dimensions, connectivité, et performances mentionnées dans le texte pour chaque produit. Ne résume pas, ne saute aucune information utile.
-2. Formatte les valeurs de prix correctement en nombres (sans devise).
-3. Essaie de traduire les clés des specs en français si elles sont en anglais (ex: "Screen Size" -> "Taille de l'écran").
-4. ATTENTION AUX PRIX: Le texte peut contenir des prix collés à des devises comme "dt", "tnd", "dinars" (ex: "300dt", "150 tnd"). Tu DOIS extraire ces valeurs numériques dans "raw_price" et NE PAS les inclure dans "reference" ou "title". (ex: "Havit kb223 300dt" -> brand: "Havit", reference: "kb223", raw_price: 300).
+1. Pour l'objet "specs", extrait l'essentiel de manière CONCISE (sois rapide). RÈGLE CRITIQUE : La clé du JSON doit être le vrai nom de la spécification (ex: "RAM", "Résolution"). NE JAMAIS utiliser de noms génériques.
+2. Formatte les valeurs de prix en nombres (sans devise).
+3. Traduis les clés en français.
+4. ATTENTION AUX PRIX: Le texte peut contenir des prix (ex: "300dt", "150 tnd"). Extrais-les dans "raw_price" (ex: 300).
+5. IMPORTANT : Reste extrêmement rapide et concis. Ne rajoute aucun bla-bla. Vérifie bien que tu as fermé toutes les accolades et crochets de ton JSON.
 
 Raw Text:
 ${rawText.slice(0, 8000)}`;
@@ -333,7 +337,7 @@ ${rawText.slice(0, 8000)}`;
       }
 
       const parsed = _parseJSON(rawLLMText || '{"items":[]}');
-      
+
       const fs = require('fs');
       fs.writeFileSync('last_llm_ingest_output.txt', rawLLMText || ''); // debug
 
@@ -345,7 +349,7 @@ ${rawText.slice(0, 8000)}`;
       return [];
     } catch (e) {
       if (attempt < 2 && (e.name === 'TimeoutError' || e.message.includes('Unable to parse'))) {
-        console.warn(`[agent-ingest] LLM attempt ${attempt+1} failed (${e.message}). Retrying...`);
+        console.warn(`[agent-ingest] LLM attempt ${attempt + 1} failed (${e.message}). Retrying...`);
         if (e.message.includes('Unable to parse')) {
           prompt += `\n\nATTENTION : Lors de la tentative précédente, tu as généré une erreur : JSON invalide. Tu DOIS renvoyer UNIQUEMENT un objet JSON valide, sans balises markdown ou texte additionnel.`;
         }

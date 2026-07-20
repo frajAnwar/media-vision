@@ -163,8 +163,9 @@ async function _processItem(item, jobId, refTables, db, onDone) {
       console.warn(`[pipeline] post-enrichment searchImages failed:`, e.message);
     }
 
-    // Auto-select only the very first (best) image by default to prevent forcing 4 images
-    const images = finalImages.slice(0, 1);
+    // Keep all validated images in high_res_images, and auto-select up to 4 images
+    const allImages = finalImages.slice(0, 6); // Max 6 images in gallery
+    const selectedImages = finalImages.slice(0, 4);
 
     // ── Step 4: Persist ─────────────────────────────────────────────────
     db.prepare(`
@@ -205,8 +206,8 @@ async function _processItem(item, jobId, refTables, db, onDone) {
       enriched.resolved_category_ids ? JSON.stringify(enriched.resolved_category_ids) : null,
       enriched.resolved_tax_rule_id  ?? null,
       JSON.stringify(enriched.extracted_specs || {}),
-      JSON.stringify(images),
-      JSON.stringify(images),
+      JSON.stringify(allImages),
+      JSON.stringify(selectedImages),
       enriched.mismatch_warning || null,
       enriched.matched_features ? JSON.stringify(enriched.matched_features) : null,
       productId

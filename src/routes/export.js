@@ -31,7 +31,7 @@ router.get('/package', (req, res) => {
   const usedFeatures = new Set();
 
   const HEADERS = [
-    'ID', 'Actif (0/1)', 'Nom*', 'Catégories (x,y,z...)', 'Prix HT', 'Prix TTC',
+    'ID', 'Actif (0/1)', 'Nom*', 'Catégories (x,y,z...)', 'Prix HT',
     'ID règle de taxes', 'Prix d\'achat', 'En soldes (0/1)', 'Montant de la remise',
     'Pourcentage de réduction', 'Réduction de (AAAA-MM-JJ)', 'Réduction à (AAAA-MM-JJ)',
     'Référence', 'Référence fournisseur', 'Fournisseurs', 'Marque', 'EAN-13', 'UPC', 'MPN',
@@ -113,11 +113,16 @@ router.get('/package', (req, res) => {
       } catch (_) {}
     }
 
+    let plainMeta = (p.seo_excerpt || '').replace(/<[^>]+>/g, ' ');
+    let finalMetaTitle = _cleanMeta(p.meta_title || p.product_title || p.reference, 128);
+    let finalMetaKw = _cleanMeta(p.meta_keywords || [p.brand, p.reference].filter(Boolean).join(', '), 255);
+    let finalMetaDesc = _cleanMeta(p.meta_description || plainMeta, 510);
+
     return [
-      '', '1', p.product_title || p.reference, catCol, p.raw_price != null ? p.raw_price.toFixed(6) : '',
+      '', '0', p.product_title || p.reference, catCol, p.raw_price != null ? p.raw_price.toFixed(6) : '',
       taxId, '', '0', '', '', '', '', p.reference, '', '', p.brand || '', '', '', '', '0', '', '', '', '',
       '', '', '10', '1', '', '0', 'both', '', '', '', p.seo_excerpt || '', p.html_description || '', '',
-      p.product_title || p.reference, [p.brand, p.reference].filter(Boolean).join(', '), p.seo_excerpt || '',
+      finalMetaTitle, finalMetaKw, finalMetaDesc,
       '', 'En Stock', '', '1', '', '', '1', allImgsStr, '', '0', featuresStr, '0', 'new', '0', '0', '0', '2',
       '0', '', '', '', '', '1', '0', '0', '', ''
     ];
@@ -241,20 +246,22 @@ router.get('/csv', (req, res) => {
     }
 
     // Plain text meta description to avoid HTML tag character limits
-    let plainMeta = (p.seo_excerpt || '').replace(/<[^>]+>/g, ' ').replace(/[<>{}=;]/g, '').replace(/\s+/g, ' ').trim();
-    if (plainMeta.length > 160) {
-      plainMeta = plainMeta.substring(0, 157) + '...';
-    }
+    let plainMeta = (p.seo_excerpt || '').replace(/<[^>]+>/g, ' ');
+    let plainMetaTruncated = plainMeta.replace(/[<>{}=;]/g, '').replace(/\s+/g, ' ').trim();
+    if (plainMetaTruncated.length > 160) plainMetaTruncated = plainMetaTruncated.substring(0, 157) + '...';
+
+    let finalMetaTitle = _cleanMeta(p.meta_title || p.product_title || p.reference, 128);
+    let finalMetaKw = _cleanMeta(p.meta_keywords || [p.brand, p.reference].filter(Boolean).join(', '), 255);
+    let finalMetaDesc = _cleanMeta(p.meta_description || plainMeta, 510);
 
     return [
       '',           // 1. ID — blank for new products
-      '1',          // 2. Actif (0/1)
+      '0',          // 2. Actif (0/1)
       p.product_title || p.reference, // 3. Nom*
       catCol,       // 4. Catégories (x,y,z...)
       p.raw_price != null ? p.raw_price.toFixed(6) : '', // 5. Prix HT
-      '',           // 6. Prix TTC
-      p.resolved_tax_rule_id ? p.resolved_tax_rule_id : '', // 7. ID règle de taxes
-      '',           // 8. Prix d'achat
+      p.resolved_tax_rule_id ? p.resolved_tax_rule_id : '', // 6. ID règle de taxes
+      '',           // 7. Prix d'achat
       '0',          // 8. En soldes (0/1)
       '',           // 9. Montant de la remise
       '',           // 10. Pourcentage de réduction
@@ -282,12 +289,12 @@ router.get('/csv', (req, res) => {
       '',           // 33. Frais de port supplémentaire
       '',           // 34. Unité pour le prix unitaire
       '',           // 35. Prix unitaire
-      plainMeta,    // 36. Récapitulatif (STRICTLY PLAIN TEXT to prevent PrestaShop fallback crash on other languages)
+      plainMetaTruncated, // 36. Récapitulatif (STRICTLY PLAIN TEXT to prevent PrestaShop fallback crash on other languages)
       ((p.seo_excerpt || '') + '<br><br>' + (p.html_description || '')).replace(/[\r\n]+/g, ' ').replace(/;/g, '&#59;'), // 37. Description (Colored bullet points + main desc) NO NEWLINES, NO RAW SEMICOLONS!
       '',           // 38. Mot-clés (x,y,z...)
-      (p.meta_title || p.product_title || p.reference).replace(/[<>{}=;]/g, ''), // 39. meta_title
-      (p.meta_keywords || [p.brand, p.reference].filter(Boolean).join(', ')).replace(/[<>{}=;]/g, ''), // 40. meta_keywords
-      (p.meta_description || plainMeta).replace(/[<>{}=;"']/g, '').replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim(), // 41. meta_description
+      finalMetaTitle, // 39. meta_title
+      finalMetaKw,    // 40. meta_keywords
+      finalMetaDesc,  // 41. meta_description
       '',           // 42. URL réécrite (PS generates automatically)
       'En Stock',   // 43. Libellé si en stock
       '',           // 44. Libellé quand précommande activée
@@ -339,6 +346,20 @@ function _escapeCell(val) {
 
 function _today() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function _cleanMeta(text, maxLength = 510) {
+  if (!text) return '';
+  let clean = String(text);
+  try {
+    clean = clean.replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '');
+  } catch (e) {}
+  clean = clean.replace(/[<>{}=;"']/g, '');
+  clean = clean.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (clean.length > maxLength) {
+    clean = clean.substring(0, maxLength - 3) + '...';
+  }
+  return clean;
 }
 
 module.exports = router;
