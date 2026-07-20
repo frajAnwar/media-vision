@@ -31,15 +31,14 @@ function createWindow () {
     },
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      preload: path.join(__dirname, 'public', 'preload-update.js')
     },
     icon: path.join(__dirname, 'public', 'favicon.png')
   });
 
-  // Give Express a moment to bind to the port
-  setTimeout(() => {
-    mainWindow.loadURL('http://localhost:3000');
-  }, 1000);
+  // Load the update splash screen first
+  mainWindow.loadFile(path.join(__dirname, 'public', 'update.html'));
 
   // Hide to tray instead of closing
   mainWindow.on('close', function (event) {
@@ -49,6 +48,10 @@ function createWindow () {
     }
     return false;
   });
+}
+
+function loadDashboard() {
+  mainWindow.loadURL('http://localhost:3000');
 }
 
 app.whenReady().then(() => {
@@ -75,24 +78,54 @@ app.whenReady().then(() => {
     mainWindow.show();
   });
 
-  // Check for updates seamlessly
-  autoUpdater.checkForUpdatesAndNotify();
+  // Wait a bit for Express to bind, then check for updates
+  setTimeout(() => {
+    if (app.isPackaged) {
+      autoUpdater.checkForUpdates();
+    } else {
+      // If in dev mode, just skip to dashboard
+      mainWindow.webContents.send('update-status', 'Mode dev: Lancement...', 100);
+      setTimeout(loadDashboard, 1000);
+    }
+  }, 1000);
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
+// Update Events
+autoUpdater.on('checking-for-update', () => {
+  if (mainWindow) mainWindow.webContents.send('update-status', 'Recherche de mises à jour...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  if (mainWindow) mainWindow.webContents.send('update-status', 'Mise à jour trouvée. Préparation...', null);
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', 'Application à jour. Lancement...', 100);
+    setTimeout(loadDashboard, 1000);
+  }
+});
+
+autoUpdater.on('error', (err) => {
+  if (mainWindow) {
+    mainWindow.webContents.send('update-status', 'Hors ligne ou erreur. Lancement...', 100);
+    setTimeout(loadDashboard, 1500);
+  }
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  let log_message = 'Téléchargement: ' + Math.round(progressObj.percent) + '%';
+  if (mainWindow) mainWindow.webContents.send('update-status', log_message, progressObj.percent);
+});
+
 autoUpdater.on('update-downloaded', (info) => {
-  dialog.showMessageBox({
-    type: 'info',
-    title: 'Update Ready',
-    message: 'A new version of Visionary AI has been downloaded. Restart the application to apply the updates.',
-    buttons: ['Restart', 'Later']
-  }).then((result) => {
-    if (result.response === 0) {
-      app.isQuiting = true;
-      autoUpdater.quitAndInstall();
-    }
-  });
+  if (mainWindow) mainWindow.webContents.send('update-status', 'Installation en cours...', 100);
+  setTimeout(() => {
+    app.isQuiting = true;
+    autoUpdater.quitAndInstall(false, true);
+  }, 2000);
 });
