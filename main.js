@@ -1,6 +1,15 @@
 const { app, BrowserWindow, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
+const fs = require('fs');
+
+// Set db path to user data directory for production
+const userDataPath = app.getPath('userData');
+const dbDir = path.join(userDataPath, 'data');
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+process.env.DB_PATH = path.join(dbDir, 'mediavision.db');
 
 // Initialize the Express server
 require('./server');
