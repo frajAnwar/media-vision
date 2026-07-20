@@ -94,6 +94,27 @@ function initDB() {
     )
   `);
 
+  // ── Pre-seed PrestaShop Categories ────────────────────────────────────────
+  try {
+    const catsCount = db.prepare("SELECT COUNT(*) as count FROM reference_tables WHERE table_name = 'categories'").get().count;
+    if (catsCount === 0) {
+      const catsPath = path.join(__dirname, 'data', 'categories.json');
+      if (fs.existsSync(catsPath)) {
+        const catsData = JSON.parse(fs.readFileSync(catsPath, 'utf8'));
+        const insert = db.prepare("INSERT INTO reference_tables (table_name, row_data) VALUES ('categories', ?)");
+        const run = db.transaction(() => {
+          for (const row of catsData) {
+            insert.run(JSON.stringify(row));
+          }
+        });
+        run();
+        console.log(`✅ Pre-seeded ${catsData.length} PrestaShop categories.`);
+      }
+    }
+  } catch(e) {
+    console.error('Failed to pre-seed categories:', e);
+  }
+
   // ── Pipeline jobs ─────────────────────────────────────────────────────────
   db.exec(`
     CREATE TABLE IF NOT EXISTS jobs (
