@@ -605,6 +605,9 @@ function productCardHTML(p) {
       </div>
 
       <div class="pr-actions" style="display:flex; gap:4px; justify-content:flex-end;">
+        <button class="btn-icon btn-secondary btn-edit-product" data-id="${p.id}" title="Modifier" onclick="event.stopPropagation()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
         <button class="btn-icon btn-secondary btn-retry-product" data-id="${p.id}" title="Réessayer (Relancer l'IA)" onclick="event.stopPropagation()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>
         </button>
@@ -856,9 +859,24 @@ function renderDrawerBody(p) {
           <div class="drawer-section-title">Catégorie suggérée</div>
           <input type="text" class="form-input" id="d-cat" value="${esc(p.suggested_category || '')}" placeholder="Catégorie..." />
         </div>
+        
+        <div style="margin-top:16px;">
+          <div class="drawer-section-title">Mots-clés (SEO)</div>
+          <input type="text" class="form-input" id="d-meta-keywords" value="${esc(p.meta_keywords || '')}" placeholder="mots-clés séparés par des virgules..." />
+        </div>
 
         <div style="margin-top:16px;">
-          <div class="drawer-section-title">Extrait SEO</div>
+          <div class="drawer-section-title">Meta Titre (SEO)</div>
+          <input type="text" class="form-input" id="d-meta-title" value="${esc(p.meta_title || '')}" placeholder="Titre SEO..." />
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="drawer-section-title">Meta Description (SEO)</div>
+          <textarea class="form-textarea" id="d-meta-description" rows="2" placeholder="Description SEO...">${esc(p.meta_description || '')}</textarea>
+        </div>
+
+        <div style="margin-top:16px;">
+          <div class="drawer-section-title">Extrait SEO (Court)</div>
           <textarea class="form-textarea" id="d-excerpt" rows="4">${esc(p.seo_excerpt || '')}</textarea>
         </div>
 
@@ -871,24 +889,36 @@ function renderDrawerBody(p) {
           <div class="html-preview" id="d-html-preview" style="display:none"></div>
         </div>
 
-        ${images.length ? `
-        <div style="margin-top:16px;">
-          <div class="drawer-section-title" style="display:flex;justify-content:space-between;align-items:center;">
-            Sélectionner les images
+        <div style="margin-top:16px; border-top: 1px solid var(--border); padding-top: 16px;">
+          <div class="drawer-section-title" style="display:flex;justify-content:space-between;align-items:center; margin-bottom: 8px;">
+            Gestion des images
             <button class="btn btn-secondary btn-sm" id="btn-auto-curate" data-id="${p.id}">✨ Auto-Curate</button>
           </div>
-          <div class="image-grid" id="drawer-img-grid">
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <input type="text" class="form-input" id="d-new-image-url" placeholder="Ajouter une URL d'image (https://...)" style="flex:1" />
+            <button class="btn btn-primary btn-sm" id="btn-add-image">Ajouter</button>
+          </div>
+          <div class="image-list" id="drawer-img-list" style="display:flex; flex-direction:column; gap:12px;">
             ${images.map((url, i) => {
               const selIdx = selectedImages.indexOf(url);
               const isSel = selIdx !== -1;
               return `
-              <div class="img-thumb${isSel ? ' active' : ''}" data-url="${esc(url)}" title="${esc(url)}">
-                <img src="${esc(url)}" loading="lazy" onerror="this.src=''" />
-                ${isSel ? `<div class="check">${selIdx + 1}</div>` : ''}
+              <div class="img-edit-row" data-original="${esc(url)}" style="display:flex; gap:12px; align-items:center; background: var(--surface-hover); padding: 8px; border-radius: 8px;">
+                <div class="img-thumb${isSel ? ' active' : ''}" data-url="${esc(url)}" title="Cliquez pour sélectionner/désélectionner" style="cursor:pointer; width: 60px; height: 60px; flex-shrink:0;">
+                  <img src="${esc(url)}" loading="lazy" onerror="this.src=''" style="width:100%; height:100%; object-fit:contain; border-radius:4px;" />
+                  ${isSel ? `<div class="check">${selIdx + 1}</div>` : ''}
+                </div>
+                <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+                  <input type="text" class="form-input img-url-input" value="${esc(url)}" style="font-size:12px; padding:4px 8px;" />
+                  <div style="font-size:11px; color:var(--text-muted)">Modifiez le lien de l'image ici</div>
+                </div>
+                <button class="btn-icon btn-danger btn-delete-image" title="Supprimer cette image">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
             `}).join('')}
           </div>
-        </div>` : ''}
+        </div>
       </div>
     </div>
   `;
@@ -908,11 +938,13 @@ function renderDrawerBody(p) {
     }
   });
 
-  // Image multi-picker
-  const imgGrid = $('drawer-img-grid');
-  if (imgGrid) {
-    imgGrid.querySelectorAll('.img-thumb').forEach(thumb => {
-      thumb.addEventListener('click', () => {
+  // Image multi-picker & management
+  const imgList = $('drawer-img-list');
+  if (imgList) {
+    // 1. Handle Selection (Click on thumbnail)
+    imgList.addEventListener('click', (e) => {
+      const thumb = e.target.closest('.img-thumb');
+      if (thumb) {
         const url = thumb.dataset.url;
         const isActive = thumb.classList.contains('active');
         
@@ -924,8 +956,8 @@ function renderDrawerBody(p) {
           }
         }
         
-        // Refresh visuals
-        imgGrid.querySelectorAll('.img-thumb').forEach(t => {
+        // Refresh checkmarks
+        imgList.querySelectorAll('.img-thumb').forEach(t => {
           const u = t.dataset.url;
           t.classList.remove('active');
           const c = t.querySelector('.check'); if(c) c.remove();
@@ -936,42 +968,112 @@ function renderDrawerBody(p) {
             t.insertAdjacentHTML('beforeend', `<div class="check">${selIdx + 1}</div>`);
           }
         });
-      });
+      }
+
+      // 2. Handle Delete (Click on delete button)
+      const delBtn = e.target.closest('.btn-delete-image');
+      if (delBtn) {
+        const row = delBtn.closest('.img-edit-row');
+        const originalUrl = row.dataset.original;
+        // Remove from selected
+        state.editingProduct.selected_images_array = state.editingProduct.selected_images_array.filter(u => u !== originalUrl);
+        // Remove from high_res_images
+        let allImages = state.editingProduct.high_res_images || [];
+        allImages = allImages.filter(u => u !== originalUrl);
+        state.editingProduct.high_res_images = allImages;
+        
+        row.remove(); // Remove visually
+        // Refresh checkmarks for remaining
+        imgList.querySelectorAll('.img-thumb').forEach(t => {
+          const u = t.dataset.url;
+          t.classList.remove('active');
+          const c = t.querySelector('.check'); if(c) c.remove();
+          const selIdx = state.editingProduct.selected_images_array.indexOf(u);
+          if (selIdx !== -1) {
+            t.classList.add('active');
+            t.insertAdjacentHTML('beforeend', `<div class="check">${selIdx + 1}</div>`);
+          }
+        });
+      }
     });
 
-    const btnAuto = $('btn-auto-curate');
-    if (btnAuto) {
-      btnAuto.addEventListener('click', async () => {
-        btnAuto.disabled = true;
-        btnAuto.textContent = 'Curating...';
-        try {
-          const res = await fetch(`/api/products/${btnAuto.dataset.id}/curate-images`, { method: 'POST' });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error);
-          
-          state.editingProduct.selected_images_array = data.selected_images;
-          toast('Images organisées avec succès !', 'ok');
-          
-          // refresh thumbs visually
-          imgGrid.querySelectorAll('.img-thumb').forEach(t => {
-            const u = t.dataset.url;
-            t.classList.remove('active');
-            const c = t.querySelector('.check'); if(c) c.remove();
-            
-            const selIdx = data.selected_images.indexOf(u);
-            if (selIdx !== -1) {
-              t.classList.add('active');
-              t.insertAdjacentHTML('beforeend', `<div class="check">${selIdx + 1}</div>`);
-            }
-          });
-        } catch(e) {
-          toast(e.message, 'err');
-        } finally {
-          btnAuto.disabled = false;
-          btnAuto.textContent = '✨ Auto-Curate Photos';
+    // 3. Handle Rename (Typing in URL input)
+    imgList.addEventListener('change', (e) => {
+      if (e.target.classList.contains('img-url-input')) {
+        const row = e.target.closest('.img-edit-row');
+        const originalUrl = row.dataset.original;
+        const newUrl = e.target.value.trim();
+        
+        if (newUrl && newUrl !== originalUrl) {
+          // Update high_res_images array
+          let allImages = state.editingProduct.high_res_images || [];
+          const idx = allImages.indexOf(originalUrl);
+          if (idx !== -1) {
+            allImages[idx] = newUrl;
+            state.editingProduct.high_res_images = allImages;
+          }
+
+          // Update selected_images_array if it was selected
+          const selIdx = state.editingProduct.selected_images_array.indexOf(originalUrl);
+          if (selIdx !== -1) {
+            state.editingProduct.selected_images_array[selIdx] = newUrl;
+          }
+
+          // Update DOM data
+          row.dataset.original = newUrl;
+          const thumb = row.querySelector('.img-thumb');
+          if (thumb) {
+            thumb.dataset.url = newUrl;
+            thumb.querySelector('img').src = newUrl;
+          }
         }
-      });
-    }
+      }
+    });
+  }
+
+  // 4. Handle Add new Image
+  const btnAddImg = $('btn-add-image');
+  if (btnAddImg) {
+    btnAddImg.addEventListener('click', () => {
+      const input = $('d-new-image-url');
+      const url = input.value.trim();
+      if (!url) return;
+
+      let allImages = state.editingProduct.high_res_images || [];
+      if (!allImages.includes(url)) {
+        allImages.push(url);
+        state.editingProduct.high_res_images = allImages;
+        state.editingProduct.selected_images_array.push(url); // Auto select new image
+        
+        // Re-render drawer body to show new image
+        renderDrawerBody(state.editingProduct); 
+      }
+      input.value = '';
+    });
+  }
+
+  const btnAuto = $('btn-auto-curate');
+  if (btnAuto) {
+    btnAuto.addEventListener('click', async () => {
+      btnAuto.disabled = true;
+      btnAuto.textContent = 'Curating...';
+      try {
+        const res = await fetch(`/api/products/${btnAuto.dataset.id}/curate-images`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        
+        state.editingProduct.selected_images_array = data.selected_images;
+        toast('Images organisées avec succès !', 'ok');
+        
+        // re-render drawer body
+        renderDrawerBody(state.editingProduct);
+      } catch (e) {
+        toast('Erreur curation: ' + e.message, 'err');
+      } finally {
+        btnAuto.disabled = false;
+        btnAuto.textContent = '✨ Auto-Curate';
+      }
+    });
   }
 }
 
@@ -984,9 +1086,13 @@ async function saveDrawer() {
     brand:             $('d-brand').value.trim(),
     raw_price:         parseFloat($('d-price').value) || null,
     suggested_category:$('d-cat').value.trim(),
+    meta_title:        $('d-meta-title').value.trim(),
+    meta_keywords:     $('d-meta-keywords').value.trim(),
+    meta_description:  $('d-meta-description').value.trim(),
     seo_excerpt:       $('d-excerpt').value.trim(),
     html_description:  $('d-html').value.trim(),
     selected_image:    p.selected_images_array ? JSON.stringify(p.selected_images_array) : (p.selected_image || null),
+    high_res_images:   p.high_res_images ? JSON.stringify(p.high_res_images) : null,
   };
 
   try {

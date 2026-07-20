@@ -50,6 +50,7 @@ router.put('/:id', (req, res) => {
     'product_title', 'brand', 'html_description', 'seo_excerpt',
     'suggested_category', 'resolved_category_id', 'resolved_tax_rule_id',
     'selected_image', 'raw_price', 'status',
+    'meta_title', 'meta_keywords', 'meta_description', 'high_res_images'
   ];
 
   const fields = Object.keys(req.body).filter(k => ALLOWED.includes(k));

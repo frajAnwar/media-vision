@@ -906,8 +906,8 @@ input[type="checkbox"] {
 .drawer {
   position: fixed;
   top: 0; right: 0; bottom: 0;
-  width: 950px;
-  max-width: 90vw;
+  width: 1300px;
+  max-width: 95vw;
   background: var(--bg-elevated);
   border-left: 1px solid var(--border);
   z-index: 101;
