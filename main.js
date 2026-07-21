@@ -57,11 +57,24 @@ function loadDashboard() {
   mainWindow.loadURL('http://localhost:3000');
 }
 
-app.whenReady().then(() => {
-  createWindow();
+const gotTheLock = app.requestSingleInstanceLock();
 
-  // Create System Tray Icon
-  const iconPath = path.join(__dirname, 'public', 'favicon.png');
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
+  app.whenReady().then(() => {
+    createWindow();
+
+    // Create System Tray Icon
+    const iconPath = path.join(__dirname, 'public', 'favicon.png');
   tray = new Tray(iconPath);
   
   const contextMenu = Menu.buildFromTemplate([
@@ -100,6 +113,7 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
+}
 
 // Update Events
 autoUpdater.on('checking-for-update', () => {
