@@ -4,6 +4,7 @@
   "description": "Visionary AI - Developed by Med Anwer Fraj",
   "main": "main.js",
   "scripts": {
+    "start": "electron .",
     "start:web": "node server.js",
     "start:app": "electron .",
     "dev": "node --watch server.js",
