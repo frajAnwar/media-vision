@@ -50,7 +50,10 @@ function createWindow () {
   });
 }
 
+let isDashboardLoaded = false;
+
 function loadDashboard() {
+  isDashboardLoaded = true;
   mainWindow.loadURL('http://localhost:3000');
 }
 
@@ -82,6 +85,10 @@ app.whenReady().then(() => {
   setTimeout(() => {
     if (app.isPackaged) {
       autoUpdater.checkForUpdates();
+      // Check for updates every hour (3600000 ms) in the background
+      setInterval(() => {
+        autoUpdater.checkForUpdates();
+      }, 3600000);
     } else {
       // If in dev mode, just skip to dashboard
       mainWindow.webContents.send('update-status', 'Mode dev: Lancement...', 100);
@@ -123,9 +130,25 @@ autoUpdater.on('download-progress', (progressObj) => {
 });
 
 autoUpdater.on('update-downloaded', (info) => {
-  if (mainWindow) mainWindow.webContents.send('update-status', 'Installation en cours...', 100);
-  setTimeout(() => {
-    app.isQuiting = true;
-    autoUpdater.quitAndInstall(false, true);
-  }, 2000);
+  if (isDashboardLoaded) {
+    // If the user is already inside the app working, show a popup
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Mise à jour disponible',
+      message: 'Une nouvelle version de Visionary AI a été téléchargée en arrière-plan. Voulez-vous redémarrer l\'application pour l\'installer maintenant ?',
+      buttons: ['Redémarrer maintenant', 'Plus tard']
+    }).then((result) => {
+      if (result.response === 0) {
+        app.isQuiting = true;
+        autoUpdater.quitAndInstall(false, true);
+      }
+    });
+  } else {
+    // If they are on the splash screen, force the update immediately
+    if (mainWindow) mainWindow.webContents.send('update-status', 'Installation en cours...', 100);
+    setTimeout(() => {
+      app.isQuiting = true;
+      autoUpdater.quitAndInstall(false, true);
+    }, 2000);
+  }
 });
