@@ -95,8 +95,8 @@
   </div>
 
   <script>
-    if (window.api && window.api.onUpdateStatus) {
-      window.api.onUpdateStatus((status, progress) => {
+    if (window.updater && window.updater.onUpdateStatus) {
+      window.updater.onUpdateStatus((status, progress) => {
         const elStatus = document.getElementById('status');
         const elBar = document.getElementById('pb');
         const elContainer = document.getElementById('pb-container');
