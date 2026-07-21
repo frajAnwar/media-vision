@@ -1511,8 +1511,18 @@ function init() {
         switchTab('dashboard');
         connectSSE(act.jobId, true);
       }
+    } else {
+      // Auto-navigate to dashboard if there are existing products
+      try {
+        const stats = await api.products.stats();
+        if (stats.total > 0) {
+          switchTab('dashboard');
+        }
+      } catch (e) {}
     }
-  }).catch(() => {});
+  }).catch(() => {
+    // If it fails, silently continue
+  });
 
   console.log('%c🚀 MediaVision Pipeline Ready', 'color:#6366f1;font-weight:bold;font-size:16px');
 }
