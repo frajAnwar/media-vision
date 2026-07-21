@@ -126,8 +126,8 @@ autoUpdater.on('update-available', (info) => {
 
 autoUpdater.on('update-not-available', (info) => {
   if (mainWindow) {
-    mainWindow.webContents.send('update-status', 'Application à jour. Lancement...', 100);
-    setTimeout(loadDashboard, 1000);
+    mainWindow.webContents.send('update-status', 'Démarrage de l\'espace de travail...', 100);
+    setTimeout(loadDashboard, 2000);
   }
 });
 

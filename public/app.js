@@ -63,6 +63,7 @@ const api = {
 
   products: {
     list:   (status, search) => api.get(`/api/products?status=${status||''}&search=${search||''}`),
+    get:    (id)             => api.get(`/api/products/${id}`),
     stats:  ()               => api.get('/api/products/stats'),
     update: (id, data)       => api.put(`/api/products/${id}`, data),
     approve:(id)             => api.post(`/api/products/${id}/approve`, {}),
@@ -253,9 +254,23 @@ function connectSSE(jobId, fromDashboard = false) {
     if (!fromDashboard) $('progress-summary').textContent = `0 / ${total}`;
   });
 
-  es.addEventListener('item_update', e => {
+  es.addEventListener('item_update', async e => {
     const { id, reference, status, title, confidence, error } = JSON.parse(e.data);
     updateProgressRow(reference, status, title, confidence, error, id, fromDashboard);
+    
+    // Live update DOM if we are on dashboard or the row exists
+    try {
+      const p = await api.products.get(id);
+      const idx = state.products.findIndex(x => String(x.id) === String(id));
+      if (idx !== -1) state.products[idx] = p;
+      
+      const row = document.querySelector(`.product-row[data-id="${id}"]`);
+      if (row) {
+        row.outerHTML = productCardHTML(p);
+      }
+    } catch(err) {
+      // Silently ignore if we can't fetch it yet
+    }
   });
 
   es.addEventListener('complete', e => {
@@ -472,49 +487,39 @@ function renderProductList() {
     });
   });
 
-  list.querySelectorAll('.btn-edit-product').forEach(btn => {
-    btn.addEventListener('click', () => openDrawer(btn.dataset.id));
-  });
+  // Event listeners are now handled via global window.handleAction to support live SSE updates.
+}
 
-  list.querySelectorAll('.btn-retry-product').forEach(btn => {
-    btn.addEventListener('click', async () => {
+window.handleAction = async (action, pId, event) => {
+  if (event) event.stopPropagation();
+  const p = state.products.find(x => String(x.id) === String(pId));
+  if (!p && action !== 'delete') return;
+
+  try {
+    if (action === 'edit') {
+      openDrawer(pId);
+    } else if (action === 'retry') {
       const reason = prompt("Instructions pour l'IA (optionnel, ex: 'Trouve une image avec fond noir') :", "");
       if (reason === null) return;
-      await retryEnrichment([btn.dataset.id], true, reason);
-    });
-  });
-
-  list.querySelectorAll('.btn-approve-product').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const pId = btn.dataset.id;
-      const p = state.products.find(x => x.id === pId);
-      if (p) {
-        if ((p.confidence < 0.6) || p.mismatch_warning) {
-          if (!confirm("Attention : L'IA a signalé une faible fiabilité ou une incohérence sur ce produit. Êtes-vous sûr de vouloir l'approuver sans vérifier les modifications ?")) {
-            return;
-          }
-        }
+      await retryEnrichment([pId], true, reason);
+    } else if (action === 'approve') {
+      if ((p.confidence < 0.6) || p.mismatch_warning) {
+        if (!confirm("Attention : L'IA a signalé une fiabilité faible. Approuver quand même ?")) return;
       }
-      try {
-        await api.products.approve(pId);
-        toast('Produit approuvé', 'ok');
-        await refreshProducts();
-        await refreshStats();
-      } catch (e) { toast(e.message, 'err'); }
-    });
-  });
-
-  list.querySelectorAll('.btn-reject-product').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      try {
-        await api.products.reject(btn.dataset.id);
-        toast('Produit rejeté', 'warn');
-        await refreshProducts();
-        await refreshStats();
-      } catch (e) { toast(e.message, 'err'); }
-    });
-  });
-}
+      await api.products.approve(pId);
+      toast('Produit approuvé', 'ok');
+      await refreshProducts();
+      await refreshStats();
+    } else if (action === 'reject') {
+      await api.products.reject(pId);
+      toast('Produit rejeté', 'warn');
+      await refreshProducts();
+      await refreshStats();
+    }
+  } catch (e) {
+    toast(e.message, 'err');
+  }
+};
 
 function productCardHTML(p) {
   const conf       = p.confidence || 0;
@@ -530,19 +535,10 @@ function productCardHTML(p) {
   }
 
   const mismatchBadge = p.mismatch_warning 
-    ? `<div class="mismatch-badge" title="${esc(p.mismatch_warning)}">⚠️ Mismatch: ${esc(p.mismatch_warning)}</div>` 
-    : '';
-
-  const confidenceReasonBadge = p.confidence_reason
-    ? `<div class="mismatch-badge" style="background:var(--error-bg);color:var(--error);border-color:rgba(239,68,68,0.3);" title="${esc(p.confidence_reason)}">❓ Fiabilité Faible: ${esc(p.confidence_reason)}</div>`
-    : '';
-
-  const errorBadge = p.status === 'error' && p.error_message
-    ? `<div class="mismatch-badge" style="background:var(--error-bg);color:var(--error);border-color:rgba(239,68,68,1); font-weight: bold; margin-top: 8px;">💥 Erreur IA: ${esc(p.error_message)}</div>`
+    ? `<div class="mismatch-badge" title="${esc(p.mismatch_warning)}">⚠️ ${esc(p.mismatch_warning)}</div>` 
     : '';
 
   const confClass  = conf >= 0.8 ? 'conf-high' : conf >= 0.5 ? 'conf-medium' : 'conf-low';
-  const confTooltip = conf >= 0.8 ? 'Données très fiables' : conf >= 0.5 ? 'Vérification recommandée' : 'Risque élevé, vérification obligatoire';
   const confLabel  = Math.round(conf*100) + '%';
   let selectedImgs = [];
   try {
@@ -557,22 +553,19 @@ function productCardHTML(p) {
   
   if (imagesToRender.length > 0) {
     galleryHTML = `<div class="dash-gallery" onclick="event.stopPropagation()">` + 
-      imagesToRender.map(url => {
-        const selIdx = selectedImgs.indexOf(url);
-        const isSel = selIdx !== -1;
+      imagesToRender.slice(0, 4).map(url => {
+        const isSel = selectedImgs.includes(url);
         return `
-          <div class="dg-item ${isSel ? 'selected' : ''}" data-url="${esc(url)}" data-pid="${p.id}">
-            <img src="${esc(url)}" loading="lazy" onerror="this.parentElement.style.display='none'" />
-            ${isSel ? `<span class="dg-num">${selIdx + 1}</span>` : ''}
+          <div class="dg-item ${isSel ? 'selected' : ''}" style="background-image: url('${esc(url)}')" title="Image">
+            ${isSel ? `<span class="dg-num">✓</span>` : ''}
           </div>
         `;
       }).join('') +
     `</div>`;
   }
 
-  const isLowConf = conf < 0.75 && p.status === 'enriched';
   return `
-    <div class="product-row${isSelected ? ' selected' : ''}${isLowConf ? ' low-confidence-alert' : ''}" data-id="${p.id}" onclick="openDrawer('${p.id}')">
+    <div class="product-row${isSelected ? ' selected' : ''}" data-id="${p.id}" onclick="window.handleAction('edit', '${p.id}', event)">
       <div class="pr-checkbox" onclick="event.stopPropagation()">
         <input type="checkbox" class="pc-cb" data-id="${p.id}"${isSelected ? ' checked' : ''} />
       </div>
@@ -584,7 +577,6 @@ function productCardHTML(p) {
       <div class="pr-ref-brand">
         <span class="pr-ref">${esc(p.reference)}</span>
         ${p.brand ? `<span class="pr-brand">${esc(p.brand)}</span>` : ''}
-        ${p.suggested_category ? `<span class="pr-cat">${esc(p.suggested_category)}</span>` : ''}
       </div>
 
       <div class="pr-main">
@@ -593,30 +585,28 @@ function productCardHTML(p) {
           ${specsHTML}
         </div>
         ${mismatchBadge}
-        ${confidenceReasonBadge}
-        ${errorBadge}
       </div>
       
       <div class="pr-price">${price}</div>
       
       <div class="pr-status">
         <span class="status-chip s-${p.status}">${statusLabel(p.status)}</span>
-        <span class="confidence-badge ${confClass}" title="${confTooltip}">${confLabel}</span>
+        <span class="confidence-badge ${confClass}">${confLabel}</span>
       </div>
 
-      <div class="pr-actions" style="display:flex; gap:4px; justify-content:flex-end;">
-        <button class="btn-icon btn-secondary btn-edit-product" data-id="${p.id}" title="Modifier" onclick="event.stopPropagation()">
+      <div class="pr-actions" style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn-icon btn-secondary" title="Modifier" onclick="window.handleAction('edit', '${p.id}', event)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
         </button>
-        <button class="btn-icon btn-secondary btn-retry-product" data-id="${p.id}" title="Réessayer (Relancer l'IA)" onclick="event.stopPropagation()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>
+        <button class="btn-icon btn-secondary" title="Réessayer" onclick="window.handleAction('retry', '${p.id}', event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>
         </button>
         ${p.status !== 'error' && p.status !== 'approved' ? `
-        <button class="btn-icon btn-success btn-approve-product" data-id="${p.id}" title="Approuver" onclick="event.stopPropagation()">
+        <button class="btn-icon btn-success" title="Approuver" onclick="window.handleAction('approve', '${p.id}', event)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         </button>` : ''}
         ${p.status !== 'error' && p.status !== 'rejected' ? `
-        <button class="btn-icon btn-danger btn-reject-product" data-id="${p.id}" title="Rejeter" onclick="event.stopPropagation()">
+        <button class="btn-icon btn-danger" title="Rejeter" onclick="window.handleAction('reject', '${p.id}', event)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>` : ''}
       </div>
@@ -841,80 +831,82 @@ function renderDrawerBody(p) {
 
       <!-- RIGHT: EDITABLE FIELDS -->
       <div class="drawer-right-col" style="overflow-y: auto; padding-right: 12px; border-left: 1px solid var(--border); padding-left: 24px;">
-        <div class="drawer-section-title">Titre produit</div>
-        <input type="text" class="form-input" id="d-title" value="${esc(p.product_title || '')}" placeholder="Titre..." />
+        <div class="drawer-section-title">Informations Générales</div>
+        <input type="text" class="form-input" id="d-title" value="${esc(p.product_title || '')}" placeholder="Titre du produit..." style="font-size: 16px; font-weight: 500; margin-bottom: 16px;" />
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px; margin-top:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px; margin-bottom: 16px;">
           <div>
-            <div class="drawer-section-title">Marque</div>
-            <input type="text" class="form-input" id="d-brand" value="${esc(p.brand || '')}" placeholder="Marque..." />
+            <div class="drawer-section-title" style="font-size: 11px;">Marque</div>
+            <input type="text" class="form-input" id="d-brand" value="${esc(p.brand || '')}" placeholder="Ex: Samsung" />
           </div>
           <div>
-            <div class="drawer-section-title">Prix HT (TND)</div>
+            <div class="drawer-section-title" style="font-size: 11px;">Prix HT (TND)</div>
             <input type="number" class="form-input" id="d-price" value="${p.raw_price ?? ''}" placeholder="0.000" step="0.001" />
           </div>
         </div>
 
-        <div style="margin-top:16px;">
-          <div class="drawer-section-title">Catégorie suggérée</div>
-          <input type="text" class="form-input" id="d-cat" value="${esc(p.suggested_category || '')}" placeholder="Catégorie..." />
+        <div style="margin-bottom: 24px;">
+          <div class="drawer-section-title" style="font-size: 11px;">Catégorie suggérée</div>
+          <input type="text" class="form-input" id="d-cat" value="${esc(p.suggested_category || '')}" placeholder="Catégorie principale > Sous-catégorie..." />
         </div>
         
-        <div style="margin-top:16px;">
-          <div class="drawer-section-title">Mots-clés (SEO)</div>
-          <input type="text" class="form-input" id="d-meta-keywords" value="${esc(p.meta_keywords || '')}" placeholder="mots-clés séparés par des virgules..." />
-        </div>
-
-        <div style="margin-top:16px;">
-          <div class="drawer-section-title">Meta Titre (SEO)</div>
-          <input type="text" class="form-input" id="d-meta-title" value="${esc(p.meta_title || '')}" placeholder="Titre SEO..." />
-        </div>
-
-        <div style="margin-top:16px;">
-          <div class="drawer-section-title">Meta Description (SEO)</div>
-          <textarea class="form-textarea" id="d-meta-description" rows="2" placeholder="Description SEO...">${esc(p.meta_description || '')}</textarea>
-        </div>
-
-        <div style="margin-top:16px;">
-          <div class="drawer-section-title">Extrait SEO (Court)</div>
-          <textarea class="form-textarea" id="d-excerpt" rows="4">${esc(p.seo_excerpt || '')}</textarea>
-        </div>
-
-        <div style="margin-top:16px;">
-          <div class="drawer-section-title" style="display:flex;align-items:center;justify-content:space-between">
-            Description HTML
-            <button class="btn btn-ghost btn-sm" id="d-preview-toggle">Aperçu</button>
+        <div class="seo-group" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+          <div class="drawer-section-title" style="margin-top: 0; margin-bottom: 12px; font-size: 14px; color: var(--primary);">⚙️ Référencement (SEO)</div>
+          
+          <div style="margin-bottom: 12px;">
+            <div class="drawer-section-title" style="font-size: 11px;">Meta Titre</div>
+            <input type="text" class="form-input" id="d-meta-title" value="${esc(p.meta_title || '')}" placeholder="Titre optimisé pour Google..." />
           </div>
-          <textarea class="form-textarea" id="d-html" rows="8">${esc(p.html_description || '')}</textarea>
-          <div class="html-preview" id="d-html-preview" style="display:none"></div>
+
+          <div style="margin-bottom: 12px;">
+            <div class="drawer-section-title" style="font-size: 11px;">Meta Description</div>
+            <textarea class="form-textarea" id="d-meta-description" rows="2" placeholder="Description courte (160 caractères max)...">${esc(p.meta_description || '')}</textarea>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <div class="drawer-section-title" style="font-size: 11px;">Mots-clés</div>
+            <input type="text" class="form-input" id="d-meta-keywords" value="${esc(p.meta_keywords || '')}" placeholder="mot-clé 1, mot-clé 2..." />
+          </div>
+
+          <div>
+            <div class="drawer-section-title" style="font-size: 11px;">Extrait Court (Résumé)</div>
+            <textarea class="form-textarea" id="d-excerpt" rows="3">${esc(p.seo_excerpt || '')}</textarea>
+          </div>
         </div>
 
-        <div style="margin-top:16px; border-top: 1px solid var(--border); padding-top: 16px;">
-          <div class="drawer-section-title" style="display:flex;justify-content:space-between;align-items:center; margin-bottom: 8px;">
-            Gestion des images
+        <div style="margin-bottom:24px;">
+          <div class="drawer-section-title" style="display:flex;align-items:center;justify-content:space-between">
+            Description HTML (Complète)
+            <button class="btn btn-ghost btn-sm" id="d-preview-toggle">Aperçu Visuel</button>
+          </div>
+          <textarea class="form-textarea" id="d-html" rows="8" style="font-family: monospace; font-size: 11px;">${esc(p.html_description || '')}</textarea>
+          <div class="html-preview" id="d-html-preview" style="display:none; background: #fff; color: #000; border-radius: 8px; padding: 16px;"></div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border); padding-top: 16px;">
+          <div class="drawer-section-title" style="display:flex;justify-content:space-between;align-items:center; margin-bottom: 16px;">
+            Gestion des images (Cochez pour sélectionner)
             <button class="btn btn-secondary btn-sm" id="btn-auto-curate" data-id="${p.id}">✨ Auto-Curate</button>
           </div>
-          <div style="display:flex; gap:8px; margin-bottom:12px;">
-            <input type="text" class="form-input" id="d-new-image-url" placeholder="Ajouter une URL d'image (https://...)" style="flex:1" />
+          <div style="display:flex; gap:8px; margin-bottom:16px;">
+            <input type="text" class="form-input" id="d-new-image-url" placeholder="Ajouter une image externe (https://...)" style="flex:1" />
             <button class="btn btn-primary btn-sm" id="btn-add-image">Ajouter</button>
           </div>
-          <div class="image-list" id="drawer-img-list" style="display:flex; flex-direction:column; gap:12px;">
+          <div class="image-grid" id="drawer-img-list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap:12px;">
             ${images.map((url, i) => {
               const selIdx = selectedImages.indexOf(url);
               const isSel = selIdx !== -1;
               return `
-              <div class="img-edit-row" data-original="${esc(url)}" style="display:flex; gap:12px; align-items:center; background: var(--surface-hover); padding: 8px; border-radius: 8px;">
-                <div class="img-thumb${isSel ? ' active' : ''}" data-url="${esc(url)}" title="Cliquez pour sélectionner/désélectionner" style="cursor:pointer; width: 60px; height: 60px; flex-shrink:0;">
-                  <img src="${esc(url)}" loading="lazy" onerror="this.src=''" style="width:100%; height:100%; object-fit:contain; border-radius:4px;" />
-                  ${isSel ? `<div class="check">${selIdx + 1}</div>` : ''}
+              <div class="img-grid-item ${isSel ? 'selected' : ''}" data-original="${esc(url)}">
+                <div class="img-thumb active" data-url="${esc(url)}" title="Cliquez pour sélectionner">
+                  <img src="${esc(url)}" loading="lazy" onerror="this.parentElement.parentElement.style.display='none'" />
+                  <div class="check">${isSel ? selIdx + 1 : ''}</div>
                 </div>
-                <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
-                  <input type="text" class="form-input img-url-input" value="${esc(url)}" style="font-size:12px; padding:4px 8px;" />
-                  <div style="font-size:11px; color:var(--text-muted)">Modifiez le lien de l'image ici</div>
+                <div class="img-actions">
+                  <button class="btn-icon btn-danger btn-delete-image btn-sm" title="Supprimer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
                 </div>
-                <button class="btn-icon btn-danger btn-delete-image" title="Supprimer cette image">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
               </div>
             `}).join('')}
           </div>
@@ -946,7 +938,8 @@ function renderDrawerBody(p) {
       const thumb = e.target.closest('.img-thumb');
       if (thumb) {
         const url = thumb.dataset.url;
-        const isActive = thumb.classList.contains('active');
+        const gridItem = thumb.closest('.img-grid-item');
+        const isActive = gridItem.classList.contains('selected');
         
         if (isActive) {
           state.editingProduct.selected_images_array = state.editingProduct.selected_images_array.filter(u => u !== url);
@@ -957,14 +950,15 @@ function renderDrawerBody(p) {
         }
         
         // Refresh checkmarks
-        imgList.querySelectorAll('.img-thumb').forEach(t => {
+        imgList.querySelectorAll('.img-grid-item').forEach(item => {
+          const t = item.querySelector('.img-thumb');
           const u = t.dataset.url;
-          t.classList.remove('active');
+          item.classList.remove('selected');
           const c = t.querySelector('.check'); if(c) c.remove();
           
           const selIdx = state.editingProduct.selected_images_array.indexOf(u);
           if (selIdx !== -1) {
-            t.classList.add('active');
+            item.classList.add('selected');
             t.insertAdjacentHTML('beforeend', `<div class="check">${selIdx + 1}</div>`);
           }
         });
@@ -973,8 +967,8 @@ function renderDrawerBody(p) {
       // 2. Handle Delete (Click on delete button)
       const delBtn = e.target.closest('.btn-delete-image');
       if (delBtn) {
-        const row = delBtn.closest('.img-edit-row');
-        const originalUrl = row.dataset.original;
+        const gridItem = delBtn.closest('.img-grid-item');
+        const originalUrl = gridItem.dataset.original;
         // Remove from selected
         state.editingProduct.selected_images_array = state.editingProduct.selected_images_array.filter(u => u !== originalUrl);
         // Remove from high_res_images
@@ -982,15 +976,18 @@ function renderDrawerBody(p) {
         allImages = allImages.filter(u => u !== originalUrl);
         state.editingProduct.high_res_images = allImages;
         
-        row.remove(); // Remove visually
+        gridItem.remove(); // Remove visually
+        
         // Refresh checkmarks for remaining
-        imgList.querySelectorAll('.img-thumb').forEach(t => {
+        imgList.querySelectorAll('.img-grid-item').forEach(item => {
+          const t = item.querySelector('.img-thumb');
           const u = t.dataset.url;
-          t.classList.remove('active');
+          item.classList.remove('selected');
           const c = t.querySelector('.check'); if(c) c.remove();
+          
           const selIdx = state.editingProduct.selected_images_array.indexOf(u);
           if (selIdx !== -1) {
-            t.classList.add('active');
+            item.classList.add('selected');
             t.insertAdjacentHTML('beforeend', `<div class="check">${selIdx + 1}</div>`);
           }
         });

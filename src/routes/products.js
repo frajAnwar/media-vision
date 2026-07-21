@@ -43,6 +43,14 @@ router.get('/stats', (req, res) => {
   res.json(stats);
 });
 
+// GET /api/products/:id
+router.get('/:id', (req, res) => {
+  const db = getDB();
+  const row = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.id);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  res.json(_hydrate(row));
+});
+
 // PUT /api/products/:id
 router.put('/:id', (req, res) => {
   const db = getDB();
