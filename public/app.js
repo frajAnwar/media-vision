@@ -767,7 +767,7 @@ function initDashboardTab() {
 
 // ── Product Edit Drawer ────────────────────────────────────────────────────
 function openDrawer(productId) {
-  const product = state.products.find(p => p.id === productId);
+  const product = state.products.find(p => String(p.id) === String(productId));
   if (!product) return;
 
   state.editingProduct = { ...product };
